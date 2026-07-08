@@ -6,15 +6,16 @@ import (
 )
 
 type Endpoint struct {
-	ID        int64
-	URL       string
-	Secret    []byte
-	IsActive  bool
-	CreatedAt time.Time
+	ID          string
+	URL         string
+	Secret      []byte
+	Description *string
+	IsActive    bool
+	CreatedAt   time.Time
 }
 
 type Subscription struct {
-	ID         int64
+	ID         string
 	EndpointID int64
 	EventType  string
 	CreatedAt  time.Time
