@@ -11,7 +11,7 @@ import (
 
 func NewValidator[T any](log *slog.Logger) func(http.Handler) http.HandlerFunc {
 	return func(next http.Handler) http.HandlerFunc {
-		log := log.With(slog.String("component", "middleware/validating"))
+		log = log.With(slog.String("component", "middleware/validating"))
 
 		validate := validator.New()
 		return func(w http.ResponseWriter, req *http.Request) {

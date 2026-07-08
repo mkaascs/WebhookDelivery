@@ -9,9 +9,9 @@ import (
 	sloglib "webhook-delivery/internal/lib/logging/slog"
 )
 
-type ctxKey int
+type parsedBodyCtxKey int
 
-const parsedBodyKey ctxKey = 0
+const parsedBodyKey parsedBodyCtxKey = 0
 
 const maxBytes int64 = 2 << 20
 

@@ -5,3 +5,8 @@ type RegisterEndpointCommand struct {
 	EventTypes  []string
 	Description *string
 }
+
+type GetAllEndpointsCommand struct {
+	Page  int
+	Limit int
+}
