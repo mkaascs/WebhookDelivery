@@ -30,14 +30,14 @@ func GetAll(getter AllEndpointsGetter, log *slog.Logger) http.HandlerFunc {
 		log = log.With(slog.String("fn", fn),
 			slog.String("request_id", middleware.GetReqID(req.Context())))
 
-		pagination := middlewares.GetPaginationParams(req.Context())
-		if pagination == nil {
+		pagination, ok := middlewares.GetPaginationParams(req.Context())
+		if !ok {
 			log.Error("failed to get pagination params. make sure that PaginationParserMiddleware is enabled")
 			utils.RenderError(w, req, http.StatusInternalServerError, "internal server error")
 			return
 		}
 
-		result, err := getter.GetAll(context.Background(), dto.GetAllEndpointsCommand{
+		result, err := getter.GetAll(req.Context(), dto.GetAllEndpointsCommand{
 			Page:  pagination.Page,
 			Limit: pagination.Limit,
 		})
@@ -56,7 +56,14 @@ func GetAll(getter AllEndpointsGetter, log *slog.Logger) http.HandlerFunc {
 
 		endpointsInfo := make([]EndpointInfo, 0, len(result.Endpoints))
 		for _, info := range result.Endpoints {
-			endpointsInfo = append(endpointsInfo, utils.ToEndpointInfo(info))
+			endpointsInfo = append(endpointsInfo, EndpointInfo{
+				ID:          info.ID,
+				URL:         info.URL,
+				EventTypes:  info.EventTypes,
+				Description: info.Description,
+				IsActive:    info.IsActive,
+				CreatedAt:   info.CreatedAt,
+			})
 		}
 
 		render.Status(req, http.StatusOK)

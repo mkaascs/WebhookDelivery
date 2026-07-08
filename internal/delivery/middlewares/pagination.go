@@ -49,6 +49,7 @@ func NewUrlPaginationParser(log *slog.Logger) func(http.Handler) http.HandlerFun
 	}
 }
 
-func GetPaginationParams(context context.Context) *PaginationParams {
-	return context.Value(paginationParamsKey).(*PaginationParams)
+func GetPaginationParams(context context.Context) (*PaginationParams, bool) {
+	params, ok := context.Value(paginationParamsKey).(*PaginationParams)
+	return params, ok
 }

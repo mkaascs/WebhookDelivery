@@ -16,7 +16,7 @@ type Endpoint struct {
 
 type Subscription struct {
 	ID         string
-	EndpointID int64
+	EndpointID string
 	EventType  string
 	CreatedAt  time.Time
 }

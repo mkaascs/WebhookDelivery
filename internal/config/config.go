@@ -22,7 +22,7 @@ type Config struct {
 }
 
 type HttpConfig struct {
-	Port         int16         `yaml:"port" default:"8080"`
+	Port         int           `yaml:"port" default:"8080"`
 	WriteTimeout time.Duration `yaml:"write_timeout" default:"5s"`
 	ReadTimeout  time.Duration `yaml:"read_timeout" default:"10s"`
 }
@@ -45,10 +45,7 @@ func MustLoad() *Config {
 }
 
 func Load() (*Config, error) {
-	err := godotenv.Load()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load .env file: %w", err)
-	}
+	_ = godotenv.Load()
 
 	cfgPath := os.Getenv("CONFIG_PATH")
 	if cfgPath == "" {

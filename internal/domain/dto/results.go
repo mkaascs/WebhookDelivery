@@ -12,7 +12,7 @@ type RegisterEndpointResult struct {
 type GetEndpointResult struct {
 	ID          string
 	URL         string
-	EventTypes  string
+	EventTypes  []string
 	Description *string
 	IsActive    bool
 	CreatedAt   time.Time
