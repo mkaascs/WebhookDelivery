@@ -23,7 +23,7 @@ type RegisterResponse struct {
 	utils.Response
 	ID         string    `json:"id"`
 	URL        string    `json:"url"`
-	EventTypes []string  `json:"event_types,omitempty"`
+	EventTypes []string  `json:"event_types"`
 	Secret     string    `json:"secret"`
 	IsActive   bool      `json:"is_active"`
 	CreatedAt  time.Time `json:"created_at"`
