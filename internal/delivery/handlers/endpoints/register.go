@@ -53,7 +53,13 @@ func Register(registrar EndpointRegistrar, log *slog.Logger) http.HandlerFunc {
 		})
 
 		if err != nil {
-			log.Error("failed to register endpoint", sloglib.Error(err), slog.String("url", payload.URL))
+			const msg = "failed to register endpoint"
+			if utils.IsCtxError(err) {
+				log.Info(msg, sloglib.Error(err))
+				return
+			}
+
+			log.Error(msg, sloglib.Error(err), slog.String("url", payload.URL))
 			utils.RenderError(w, req, http.StatusInternalServerError, "internal server error")
 			return
 		}
