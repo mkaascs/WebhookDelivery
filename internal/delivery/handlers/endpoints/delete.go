@@ -29,7 +29,7 @@ func Delete(deleter EndpointDeleter, log *slog.Logger) http.HandlerFunc {
 
 		if err := deleter.Delete(req.Context(), id); err != nil {
 			const msg = "failed to delete endpoint"
-			if utils.IsCtxError(err) {
+			if utils.IsCtxError(err) || utils.TryRenderEndpointsError(w, req, err) {
 				log.Info(msg, sloglib.Error(err))
 				return
 			}

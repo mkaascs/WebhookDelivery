@@ -1,10 +1,12 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator"
 	"net/http"
+	"webhook-delivery/internal/domain"
 )
 
 type Response struct {
@@ -38,4 +40,13 @@ func RenderValidationErrors(w http.ResponseWriter, req *http.Request, errs valid
 	}
 
 	render.JSON(w, req, Response{Errors: errMessages})
+}
+
+func TryRenderEndpointsError(w http.ResponseWriter, req *http.Request, err error) bool {
+	if errors.Is(err, domain.ErrEndpointNotFound) {
+		RenderError(w, req, http.StatusNotFound, "endpoint with this id not found")
+		return true
+	}
+
+	return false
 }
