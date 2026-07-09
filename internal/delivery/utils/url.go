@@ -14,7 +14,7 @@ func ValidateURL(raw string) error {
 	}
 
 	if u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
-		return errors.New("invalid URL")
+		return errors.New("invalid URL: host not provided or scheme is not https")
 	}
 
 	host := u.Hostname()

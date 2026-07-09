@@ -46,6 +46,12 @@ func Register(registrar EndpointRegistrar, log *slog.Logger) http.HandlerFunc {
 			return
 		}
 
+		if err := utils.ValidateURL(payload.URL); err != nil {
+			log.Info("validation error", sloglib.Error(err), slog.String("url", payload.URL))
+			utils.RenderError(w, req, http.StatusBadRequest, "invalid url")
+			return
+		}
+
 		result, err := registrar.Register(req.Context(), dto.RegisterEndpointCommand{
 			URL:         payload.URL,
 			EventTypes:  payload.EventTypes,
