@@ -10,3 +10,9 @@ type GetAllEndpointsCommand struct {
 	Page  int
 	Limit int
 }
+
+type UpdateEndpointCommand struct {
+	URL         *string
+	IsActive    *bool
+	Description *string
+}
