@@ -10,6 +10,7 @@ import (
 	"webhook-delivery/internal/delivery/utils"
 	"webhook-delivery/internal/domain/dto"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
+	"webhook-delivery/internal/lib/ptr"
 )
 
 type GetAllResponse struct {
@@ -60,7 +61,7 @@ func GetAll(getter AllEndpointsGetter, log *slog.Logger) http.HandlerFunc {
 				ID:          info.ID,
 				URL:         info.URL,
 				EventTypes:  info.EventTypes,
-				Description: info.Description,
+				Description: ptr.Defer(info.Description),
 				IsActive:    info.IsActive,
 				CreatedAt:   info.CreatedAt,
 			})
