@@ -3,7 +3,6 @@ package endpoints
 import (
 	"context"
 	"github.com/go-chi/chi/middleware"
-	"github.com/go-chi/render"
 	"log/slog"
 	"net/http"
 	"webhook-delivery/internal/delivery/middlewares"
@@ -31,7 +30,7 @@ func Update(updater EndpointUpdater, log *slog.Logger) http.HandlerFunc {
 		payload, ok := middlewares.GetParsedRequestBody[UpdateRequest](req.Context())
 		if !ok {
 			log.Info("request body is empty")
-			render.Status(req, http.StatusNoContent)
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
@@ -56,11 +55,11 @@ func Update(updater EndpointUpdater, log *slog.Logger) http.HandlerFunc {
 				return
 			}
 
-			log.Error(msg, sloglib.Error(err), slog.String("url", *payload.URL))
+			log.Error(msg, sloglib.Error(err))
 			utils.RenderError(w, req, http.StatusInternalServerError, "internal server error")
 			return
 		}
 
-		render.Status(req, http.StatusNoContent)
+		w.WriteHeader(http.StatusNoContent)
 	}
 }

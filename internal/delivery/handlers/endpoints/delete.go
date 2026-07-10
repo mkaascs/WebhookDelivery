@@ -3,7 +3,6 @@ package endpoints
 import (
 	"context"
 	"github.com/go-chi/chi/middleware"
-	"github.com/go-chi/render"
 	"log/slog"
 	"net/http"
 	"webhook-delivery/internal/delivery/utils"
@@ -39,6 +38,6 @@ func Delete(deleter EndpointDeleter, log *slog.Logger) http.HandlerFunc {
 			return
 		}
 
-		render.Status(req, http.StatusNoContent)
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
