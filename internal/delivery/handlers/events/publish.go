@@ -44,6 +44,12 @@ func Publish(publisher EventPublisher, log *slog.Logger) http.HandlerFunc {
 			return
 		}
 
+		if payload.Type == "" {
+			log.Info("event type is empty")
+			utils.RenderError(w, req, http.StatusBadRequest, "event type is empty")
+			return
+		}
+
 		result, err := publisher.Publish(req.Context(), dto.PublishEventCommand{
 			Type:    payload.Type,
 			Payload: payload.Payload,

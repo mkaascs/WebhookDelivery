@@ -44,6 +44,11 @@ func Test_Publish(t *testing.T) {
 			wantStatus: http.StatusBadRequest,
 		},
 		{
+			name:       "empty event type",
+			body:       `{"payload":{"amount":100}}`,
+			wantStatus: http.StatusBadRequest,
+		},
+		{
 			name: "generic internal error",
 			body: `{"type":"order.created","payload":{"amount":100}}`,
 			setupMock: func(m *mocks.MockEventPublisher) {
