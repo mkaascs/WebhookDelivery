@@ -10,3 +10,12 @@ tasks:
     cmds:
       - chmod +x ./scripts/gen_mocks.sh
       - ./scripts/gen_mocks.sh
+  test:
+    desc: "Run all tests"
+    cmds:
+      - go test -v -coverprofile=coverage.out ./internal/delivery/...
+  test:cover:
+    desc: "Run all tests with visual coverage out"
+    cmds:
+      - task test
+      - go tool cover -html=coverage.out -o coverage.html
