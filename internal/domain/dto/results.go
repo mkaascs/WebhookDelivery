@@ -29,3 +29,12 @@ type GetAllEndpointsResult struct {
 type AddSubscriptionResult struct {
 	Subscriptions []domain.Subscription
 }
+
+type PublishEventResult struct {
+	Event             domain.Event
+	DeliveriesCreated int
+}
+
+type GetEventResult struct {
+	Event domain.Event
+}

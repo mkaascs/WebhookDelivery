@@ -1,5 +1,7 @@
 package dto
 
+import "encoding/json"
+
 type RegisterEndpointCommand struct {
 	URL         string
 	EventTypes  []string
@@ -20,4 +22,9 @@ type UpdateEndpointCommand struct {
 type AddSubscriptionCommand struct {
 	EndpointID string
 	EventTypes []string
+}
+
+type PublishEventCommand struct {
+	Type    string
+	Payload json.RawMessage
 }

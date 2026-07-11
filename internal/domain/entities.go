@@ -22,7 +22,7 @@ type Subscription struct {
 }
 
 type Event struct {
-	ID        int64
+	ID        string
 	Type      string
 	Payload   json.RawMessage
 	CreatedAt time.Time
