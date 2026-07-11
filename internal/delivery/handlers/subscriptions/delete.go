@@ -35,6 +35,7 @@ func Delete(deleter SubscriptionDeleter, log *slog.Logger) http.HandlerFunc {
 
 			log.Error(msg, sloglib.Error(err), slog.String("subscription_id", subscriptionID))
 			utils.RenderError(w, req, http.StatusInternalServerError, "internal server error")
+			return
 		}
 
 		w.WriteHeader(http.StatusNoContent)
