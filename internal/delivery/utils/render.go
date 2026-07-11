@@ -48,5 +48,15 @@ func TryRenderEndpointsError(w http.ResponseWriter, req *http.Request, err error
 		return true
 	}
 
+	if errors.Is(err, domain.ErrSubscriptionNotFound) {
+		RenderError(w, req, http.StatusNotFound, "subscription with this id not found")
+		return true
+	}
+
+	if errors.Is(err, domain.ErrSubscriptionAlreadyExists) {
+		RenderError(w, req, http.StatusConflict, "subscription with this id is already exists")
+		return true
+	}
+
 	return false
 }

@@ -1,6 +1,9 @@
 package dto
 
-import "time"
+import (
+	"time"
+	"webhook-delivery/internal/domain"
+)
 
 type RegisterEndpointResult struct {
 	ID        string
@@ -21,4 +24,8 @@ type GetEndpointResult struct {
 type GetAllEndpointsResult struct {
 	Total     int
 	Endpoints []GetEndpointResult
+}
+
+type AddSubscriptionResult struct {
+	Subscriptions []domain.Subscription
 }

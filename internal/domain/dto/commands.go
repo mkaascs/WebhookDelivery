@@ -16,3 +16,8 @@ type UpdateEndpointCommand struct {
 	IsActive    *bool
 	Description *string
 }
+
+type AddSubscriptionCommand struct {
+	EndpointID string
+	EventTypes []string
+}
