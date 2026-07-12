@@ -21,12 +21,14 @@ func Test_Update(t *testing.T) {
 
 	tests := []struct {
 		name       string
+		id         string
 		body       string
 		setupMock  func(m *mocks.MockEndpointUpdater)
 		wantStatus int
 	}{
 		{
 			name: "success",
+			id:   "ep-1",
 			body: `{"url":"https://hooks.example.com/hook","is_active":false}`,
 			setupMock: func(m *mocks.MockEndpointUpdater) {
 				m.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
@@ -34,12 +36,20 @@ func Test_Update(t *testing.T) {
 			wantStatus: http.StatusNoContent,
 		},
 		{
+			name:       "missing endpoint id",
+			id:         "",
+			body:       `{"url":"https://hooks.example.com/hook"}`,
+			wantStatus: http.StatusBadRequest,
+		},
+		{
 			name:       "invalid url",
+			id:         "ep-1",
 			body:       `{"url":"http://127.0.0.1/hook"}`,
 			wantStatus: http.StatusBadRequest,
 		},
 		{
 			name: "endpoint not found",
+			id:   "ep-404",
 			body: `{"url":"https://hooks.example.com/hook"}`,
 			setupMock: func(m *mocks.MockEndpointUpdater) {
 				m.EXPECT().Update(gomock.Any(), gomock.Any()).Return(domain.ErrEndpointNotFound)
@@ -48,6 +58,7 @@ func Test_Update(t *testing.T) {
 		},
 		{
 			name: "generic internal error",
+			id:   "ep-1",
 			body: `{"url":"https://hooks.example.com/hook"}`,
 			setupMock: func(m *mocks.MockEndpointUpdater) {
 				m.EXPECT().Update(gomock.Any(), gomock.Any()).Return(errors.New("redis down"))
@@ -66,7 +77,7 @@ func Test_Update(t *testing.T) {
 
 			handler := middlewares.NewBodyParser[UpdateRequest](log)(Update(updater, log))
 
-			req := httptest.NewRequest(http.MethodPatch, "/endpoints", strings.NewReader(tt.body))
+			req := httptest.NewRequest(http.MethodPatch, "/endpoints?id="+tt.id, strings.NewReader(tt.body))
 			rr := httptest.NewRecorder()
 
 			handler.ServeHTTP(rr, req)
