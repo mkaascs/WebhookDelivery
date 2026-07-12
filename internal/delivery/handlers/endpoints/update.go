@@ -27,6 +27,13 @@ func Update(updater EndpointUpdater, log *slog.Logger) http.HandlerFunc {
 		log = log.With(slog.String("fn", fn),
 			slog.String("request_id", middleware.GetReqID(req.Context())))
 
+		id := req.URL.Query().Get("id")
+		if id == "" {
+			log.Info("endpoint id is not provided")
+			utils.RenderError(w, req, http.StatusBadRequest, "endpoint id is not provided")
+			return
+		}
+
 		payload, ok := middlewares.GetParsedRequestBody[UpdateRequest](req.Context())
 		if !ok {
 			log.Info("request body is empty")
@@ -43,6 +50,7 @@ func Update(updater EndpointUpdater, log *slog.Logger) http.HandlerFunc {
 		}
 
 		err := updater.Update(req.Context(), dto.UpdateEndpointCommand{
+			ID:          id,
 			URL:         payload.URL,
 			IsActive:    payload.IsActive,
 			Description: payload.Description,

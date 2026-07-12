@@ -14,6 +14,7 @@ type GetAllEndpointsCommand struct {
 }
 
 type UpdateEndpointCommand struct {
+	ID          string
 	URL         *string
 	IsActive    *bool
 	Description *string
