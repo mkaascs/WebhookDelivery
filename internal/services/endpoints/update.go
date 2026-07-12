@@ -21,7 +21,7 @@ func (s *Service) Update(ctx context.Context, command dto.UpdateEndpointCommand)
 		}
 
 		log.Error(msg, sloglib.Error(err))
-		return fmt.Errorf("%s: %w", fn, err)
+		return fmt.Errorf("%s: %s: %w", fn, msg, err)
 	}
 
 	log.Info("endpoint was updated successfully", slog.String("id", command.ID))
