@@ -25,6 +25,8 @@ func (s *Service) GetByID(ctx context.Context, id string) (*dto.GetEndpointResul
 		return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 	}
 
+	log.Info("endpoint info was sent successfully", slog.String("id", id))
+
 	return result, nil
 }
 
@@ -43,6 +45,11 @@ func (s *Service) GetAll(ctx context.Context, command dto.GetAllEndpointsCommand
 		log.Error(msg, sloglib.Error(err))
 		return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 	}
+
+	log.Info("endpoints info were sent successfully",
+		slog.Int("total", result.Total),
+		slog.Int("limit", command.Limit),
+		slog.Int("page", command.Page))
 
 	return result, nil
 }

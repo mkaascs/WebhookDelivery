@@ -24,5 +24,7 @@ func (s *Service) Update(ctx context.Context, command dto.UpdateEndpointCommand)
 		return fmt.Errorf("%s: %w", fn, err)
 	}
 
+	log.Info("endpoint was updated successfully", slog.String("id", command.ID))
+
 	return nil
 }

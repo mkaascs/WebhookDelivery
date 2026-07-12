@@ -25,5 +25,7 @@ func (s *Service) Register(ctx context.Context, command dto.RegisterEndpointComm
 		return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 	}
 
+	log.Info("new endpoint was created successfully", slog.String("id", result.ID))
+
 	return result, nil
 }

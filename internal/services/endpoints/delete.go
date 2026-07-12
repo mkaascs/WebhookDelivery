@@ -23,5 +23,7 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("%s: %s: %w", fn, msg, err)
 	}
 
+	log.Info("endpoint successfully deleted", slog.String("id", id))
+
 	return nil
 }
