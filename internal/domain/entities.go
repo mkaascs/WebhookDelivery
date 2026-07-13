@@ -27,3 +27,21 @@ type Event struct {
 	Payload   json.RawMessage
 	CreatedAt time.Time
 }
+
+type DeliveryStatus string
+
+const (
+	StatusDelivered = DeliveryStatus("delivered")
+	StatusPending   = DeliveryStatus("pending")
+	StatusFailed    = DeliveryStatus("failed")
+)
+
+type Deliveries struct {
+	ID          string
+	EndpointID  string
+	EventID     string
+	Status      DeliveryStatus
+	Attempts    int
+	MaxAttempts int
+	NextRetryAt time.Time
+}
