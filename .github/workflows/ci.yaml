@@ -5,6 +5,10 @@ on:
     branches: [master, development]
   pull_request:
     branches: [master, development]
+
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -31,15 +35,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
-          cache: false
+          go-version: stable
 
-      - name: Lint
-        uses: golangci/golangci-lint-action@v6
+      - name: Linter
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          version: v2.12
