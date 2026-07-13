@@ -1,5 +1,8 @@
 # Webhook Service
 
+![CI](https://github.com/mkaascs/WebhookDelivery/actions/workflows/ci.yaml/badge.svg)
+![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)
+
 A reliable webhook delivery service. It accepts events from applications and guarantees delivery to subscribers over HTTP — with retries, exponential backoff, HMAC signing, and a full log of delivery attempts.
 
 In essence, this is what sits behind the webhooks of Stripe, GitHub, or Telegram: the side that dispatches notifications to third-party URLs and takes on all the dirty work of reliable delivery.
