@@ -7,6 +7,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	domain "webhook-delivery/internal/domain"
 	dto "webhook-delivery/internal/domain/dto"
 
 	gomock "github.com/golang/mock/gomock"
@@ -65,12 +66,13 @@ func (mr *MockRepoMockRecorder) Delete(ctx, id interface{}) *gomock.Call {
 }
 
 // GetAll mocks base method.
-func (m *MockRepo) GetAll(ctx context.Context, command dto.GetAllEndpointsCommand) (*dto.GetAllEndpointsResult, error) {
+func (m *MockRepo) GetAll(ctx context.Context, command dto.GetAllEndpointsCommand) ([]domain.Endpoint, int, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAll", ctx, command)
-	ret0, _ := ret[0].(*dto.GetAllEndpointsResult)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].([]domain.Endpoint)
+	ret1, _ := ret[1].(int)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // GetAll indicates an expected call of GetAll.
@@ -80,10 +82,10 @@ func (mr *MockRepoMockRecorder) GetAll(ctx, command interface{}) *gomock.Call {
 }
 
 // GetByID mocks base method.
-func (m *MockRepo) GetByID(ctx context.Context, id string) (*dto.GetEndpointResult, error) {
+func (m *MockRepo) GetByID(ctx context.Context, id string) (*domain.Endpoint, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByID", ctx, id)
-	ret0, _ := ret[0].(*dto.GetEndpointResult)
+	ret0, _ := ret[0].(*domain.Endpoint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

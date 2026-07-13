@@ -27,14 +27,15 @@ func (s *Service) GetByID(ctx context.Context, id string) (*dto.GetEndpointResul
 
 	log.Info("endpoint info was sent successfully", slog.String("id", id))
 
-	return result, nil
+	endpoint := utils.EndpointToResult(*result)
+	return &endpoint, nil
 }
 
 func (s *Service) GetAll(ctx context.Context, command dto.GetAllEndpointsCommand) (*dto.GetAllEndpointsResult, error) {
 	const fn = "services.endpoints.Service.GetAll"
 	log := s.log.With(slog.String("fn", fn))
 
-	result, err := s.repo.GetAll(ctx, command)
+	result, total, err := s.repo.GetAll(ctx, command)
 	if err != nil {
 		const msg = "failed to get all endpoints"
 		if utils.IsDomainError(err) {
@@ -47,9 +48,17 @@ func (s *Service) GetAll(ctx context.Context, command dto.GetAllEndpointsCommand
 	}
 
 	log.Info("endpoints info were sent successfully",
-		slog.Int("total", result.Total),
+		slog.Int("total", total),
 		slog.Int("limit", command.Limit),
 		slog.Int("page", command.Page))
 
-	return result, nil
+	endpoints := make([]dto.GetEndpointResult, 0, len(result))
+	for _, endpoint := range result {
+		endpoints = append(endpoints, utils.EndpointToResult(endpoint))
+	}
+
+	return &dto.GetAllEndpointsResult{
+		Endpoints: endpoints,
+		Total:     total,
+	}, nil
 }

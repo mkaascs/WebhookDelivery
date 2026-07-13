@@ -9,6 +9,7 @@ type Endpoint struct {
 	ID          string
 	URL         string
 	Secret      []byte
+	EventTypes  []string
 	Description *string
 	IsActive    bool
 	CreatedAt   time.Time
