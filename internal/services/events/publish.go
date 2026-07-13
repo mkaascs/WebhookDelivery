@@ -23,15 +23,17 @@ func (s *Service) Publish(ctx context.Context, command dto.PublishEventCommand) 
 	if err != nil {
 		const msg = "failed to create deliveries for event"
 		if utils.IsDomainError(err) {
-			log.Info(msg, sloglib.Error(err), slog.String("event_id", event.ID))
+			log.Info(msg, sloglib.Error(err), slog.String("id", event.ID))
 			return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 		}
 
-		log.Error(msg, sloglib.Error(err), slog.String("event_id", event.ID))
+		log.Error(msg, sloglib.Error(err), slog.String("id", event.ID))
 		return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 	}
 
 	s.notifier.Notify()
+
+	log.Info("event was published successfully", slog.String("id", event.ID), slog.String("type", event.Type))
 
 	return &dto.PublishEventResult{
 		Event:             *event,

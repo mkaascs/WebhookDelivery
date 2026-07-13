@@ -17,13 +17,15 @@ func (s *Service) Get(ctx context.Context, eventID string) (*dto.GetEventResult,
 	if err != nil {
 		const msg = "failed to get event by id"
 		if utils.IsDomainError(err) {
-			log.Info(msg, sloglib.Error(err), slog.String("event_id", eventID))
+			log.Info(msg, sloglib.Error(err), slog.String("id", eventID))
 			return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 		}
 
-		log.Error(msg, sloglib.Error(err), slog.String("event_id", eventID))
+		log.Error(msg, sloglib.Error(err), slog.String("id", eventID))
 		return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 	}
+
+	log.Info("event info was sent successfully", slog.String("id", event.ID))
 
 	return &dto.GetEventResult{
 		Event: *event,
