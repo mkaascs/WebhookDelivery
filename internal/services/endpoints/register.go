@@ -16,7 +16,7 @@ func (s *Service) Register(ctx context.Context, command dto.RegisterEndpointComm
 	result, err := s.repo.AddEndpoint(ctx, command)
 	if err != nil {
 		const msg = "failed to register endpoint"
-		if utils.IsDomainError(err) {
+		if utils.IsDomainError(err) || utils.IsCtxError(err) {
 			log.Info(msg, sloglib.Error(err))
 			return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 		}

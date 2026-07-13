@@ -16,7 +16,7 @@ func (s *Service) GetByID(ctx context.Context, id string) (*dto.GetEndpointResul
 	result, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		const msg = "failed to get endpoint"
-		if utils.IsDomainError(err) {
+		if utils.IsDomainError(err) || utils.IsCtxError(err) {
 			log.Info(msg, sloglib.Error(err), slog.String("id", id))
 			return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 		}
@@ -38,7 +38,7 @@ func (s *Service) GetAll(ctx context.Context, command dto.GetAllEndpointsCommand
 	result, total, err := s.repo.GetAll(ctx, command)
 	if err != nil {
 		const msg = "failed to get all endpoints"
-		if utils.IsDomainError(err) {
+		if utils.IsDomainError(err) || utils.IsCtxError(err) {
 			log.Info(msg, sloglib.Error(err))
 			return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 		}

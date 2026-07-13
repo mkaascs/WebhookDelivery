@@ -14,7 +14,7 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 
 	if err := s.repo.Delete(ctx, id); err != nil {
 		const msg = "failed to delete endpoint"
-		if utils.IsDomainError(err) {
+		if utils.IsDomainError(err) || utils.IsCtxError(err) {
 			log.Info(msg, sloglib.Error(err), slog.String("id", id))
 			return fmt.Errorf("%s: %s: %w", fn, msg, err)
 		}

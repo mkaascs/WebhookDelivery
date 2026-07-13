@@ -16,7 +16,7 @@ func (s *Service) Get(ctx context.Context, eventID string) (*dto.GetEventResult,
 	event, err := s.eventRepo.GetByID(ctx, eventID)
 	if err != nil {
 		const msg = "failed to get event by id"
-		if utils.IsDomainError(err) {
+		if utils.IsDomainError(err) || utils.IsCtxError(err) {
 			log.Info(msg, sloglib.Error(err), slog.String("id", eventID))
 			return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 		}

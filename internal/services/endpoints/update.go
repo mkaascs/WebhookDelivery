@@ -15,7 +15,7 @@ func (s *Service) Update(ctx context.Context, command dto.UpdateEndpointCommand)
 
 	if err := s.repo.Update(ctx, command); err != nil {
 		const msg = "failed to update endpoint"
-		if utils.IsDomainError(err) {
+		if utils.IsDomainError(err) || utils.IsCtxError(err) {
 			log.Info(msg, sloglib.Error(err))
 			return fmt.Errorf("%s: %s: %w", fn, msg, err)
 		}
