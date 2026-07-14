@@ -45,4 +45,5 @@ type Deliveries struct {
 	Attempts    int
 	MaxAttempts int
 	NextRetryAt time.Time
+	CreatedAt   time.Time
 }
