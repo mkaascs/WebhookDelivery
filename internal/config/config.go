@@ -17,6 +17,7 @@ const (
 
 type Config struct {
 	Env         string `yaml:"env" default:"local"`
+	DbConfig    `yaml:"db"`
 	HttpConfig  `yaml:"http_server"`
 	RedisConfig `yaml:"redis"`
 }
@@ -33,6 +34,13 @@ type RedisConfig struct {
 	IdleTimeout time.Duration `yaml:"idle_timeout" default:"10s"`
 	Timeout     time.Duration `yaml:"timeout" default:"5s"`
 	MaxRetries  int           `yaml:"max_retries" default:"1"`
+}
+
+type DbConfig struct {
+	Addr              string        `yaml:"addr" required:"true"`
+	User              string        `yaml:"-" env:"DB_USERNAME" env-required:"true"`
+	Password          string        `yaml:"-" env:"DB_PASSWORD" env-required:"true"`
+	ConnectionTimeout time.Duration `yaml:"connection_timeout" default:"5s"`
 }
 
 func MustLoad() *Config {

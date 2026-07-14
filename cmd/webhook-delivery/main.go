@@ -2,34 +2,39 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 	"webhook-delivery/internal/app"
 	"webhook-delivery/internal/config"
 	"webhook-delivery/internal/lib/logging"
-	sloglib "webhook-delivery/internal/lib/logging/slog"
 )
 
 func main() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	cfg := config.MustLoad()
 	logger := logging.MustLoad(cfg.Env)
 
-	logger.Info("logging and config were loaded successfully")
+	logger.Info("webhook-delivery is starting", slog.String("env", cfg.Env))
 
-	application := app.NewApp(*cfg)
+	application := app.New(logger, *cfg)
 
-	go func() {
-		if err := application.Http.Run(); err != nil {
-			logger.Error("failed to listen and serve http", sloglib.Error(err))
-		}
-	}()
+	application.Postgres.MustConnect()
+	go application.Http.MustRun()
 
-	logger.Info("http server is running", slog.Int("port", int(cfg.Port)))
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
-	_, _ = fmt.Scanln()
+	<-stop
 
-	logger.Info("http server was graceful closed", slog.Int("port", int(cfg.Port)))
-	if err := application.Http.Shutdown(context.Background()); err != nil {
-		logger.Error("failed to shut down server", sloglib.Error(err))
+	application.Postgres.Close()
+	if err := application.Http.Shutdown(ctx); err != nil {
+		logger.Error(err.Error())
 	}
+
+	logger.Info("webhook-delivery is stopped")
 }

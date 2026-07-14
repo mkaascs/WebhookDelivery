@@ -9,3 +9,6 @@ redis:
   idle_timeout: 10s
   timeout: 5s
   max_retries: 1
+db:
+  addr: "localhost:5432"
+  connection_timeout: 5s
