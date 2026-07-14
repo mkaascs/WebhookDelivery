@@ -1,5 +1,9 @@
 version: "3"
 
+vars:
+  MIGRATION_DIR: migrations
+  DB_URL: postgres://$(DB_USERNAME):$(DB_PASSWORD)@
+
 tasks:
   default:
     desc: "Command list"
@@ -19,3 +23,11 @@ tasks:
     cmds:
       - task test
       - go tool cover -html=coverage.out -o coverage.html
+  migrate:up:
+    desc: "Migrate up DB"
+    cmds:
+      - go run ./cmd/migrate/main.go up
+  migrate:down:
+    desc: "Migrate down DB"
+    cmds:
+      - go run ./cmd/migrate/main.go down
