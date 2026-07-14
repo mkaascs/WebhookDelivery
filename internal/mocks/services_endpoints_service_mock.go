@@ -13,31 +13,31 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockRepo is a mock of Repo interface.
-type MockRepo struct {
+// MockEndpointRepo is a mock of EndpointRepo interface.
+type MockEndpointRepo struct {
 	ctrl     *gomock.Controller
-	recorder *MockRepoMockRecorder
+	recorder *MockEndpointRepoMockRecorder
 }
 
-// MockRepoMockRecorder is the mock recorder for MockRepo.
-type MockRepoMockRecorder struct {
-	mock *MockRepo
+// MockEndpointRepoMockRecorder is the mock recorder for MockEndpointRepo.
+type MockEndpointRepoMockRecorder struct {
+	mock *MockEndpointRepo
 }
 
-// NewMockRepo creates a new mock instance.
-func NewMockRepo(ctrl *gomock.Controller) *MockRepo {
-	mock := &MockRepo{ctrl: ctrl}
-	mock.recorder = &MockRepoMockRecorder{mock}
+// NewMockEndpointRepo creates a new mock instance.
+func NewMockEndpointRepo(ctrl *gomock.Controller) *MockEndpointRepo {
+	mock := &MockEndpointRepo{ctrl: ctrl}
+	mock.recorder = &MockEndpointRepoMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockRepo) EXPECT() *MockRepoMockRecorder {
+func (m *MockEndpointRepo) EXPECT() *MockEndpointRepoMockRecorder {
 	return m.recorder
 }
 
 // AddEndpoint mocks base method.
-func (m *MockRepo) AddEndpoint(ctx context.Context, command dto.RegisterEndpointCommand) (*dto.RegisterEndpointResult, error) {
+func (m *MockEndpointRepo) AddEndpoint(ctx context.Context, command dto.RegisterEndpointCommand) (*dto.RegisterEndpointResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddEndpoint", ctx, command)
 	ret0, _ := ret[0].(*dto.RegisterEndpointResult)
@@ -46,13 +46,13 @@ func (m *MockRepo) AddEndpoint(ctx context.Context, command dto.RegisterEndpoint
 }
 
 // AddEndpoint indicates an expected call of AddEndpoint.
-func (mr *MockRepoMockRecorder) AddEndpoint(ctx, command interface{}) *gomock.Call {
+func (mr *MockEndpointRepoMockRecorder) AddEndpoint(ctx, command interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddEndpoint", reflect.TypeOf((*MockRepo)(nil).AddEndpoint), ctx, command)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddEndpoint", reflect.TypeOf((*MockEndpointRepo)(nil).AddEndpoint), ctx, command)
 }
 
 // Delete mocks base method.
-func (m *MockRepo) Delete(ctx context.Context, id string) error {
+func (m *MockEndpointRepo) Delete(ctx context.Context, id string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", ctx, id)
 	ret0, _ := ret[0].(error)
@@ -60,13 +60,13 @@ func (m *MockRepo) Delete(ctx context.Context, id string) error {
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockRepoMockRecorder) Delete(ctx, id interface{}) *gomock.Call {
+func (mr *MockEndpointRepoMockRecorder) Delete(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockRepo)(nil).Delete), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockEndpointRepo)(nil).Delete), ctx, id)
 }
 
 // GetAll mocks base method.
-func (m *MockRepo) GetAll(ctx context.Context, command dto.GetAllEndpointsCommand) ([]domain.Endpoint, int, error) {
+func (m *MockEndpointRepo) GetAll(ctx context.Context, command dto.GetAllEndpointsCommand) ([]domain.Endpoint, int, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAll", ctx, command)
 	ret0, _ := ret[0].([]domain.Endpoint)
@@ -76,13 +76,13 @@ func (m *MockRepo) GetAll(ctx context.Context, command dto.GetAllEndpointsComman
 }
 
 // GetAll indicates an expected call of GetAll.
-func (mr *MockRepoMockRecorder) GetAll(ctx, command interface{}) *gomock.Call {
+func (mr *MockEndpointRepoMockRecorder) GetAll(ctx, command interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockRepo)(nil).GetAll), ctx, command)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockEndpointRepo)(nil).GetAll), ctx, command)
 }
 
 // GetByID mocks base method.
-func (m *MockRepo) GetByID(ctx context.Context, id string) (*domain.Endpoint, error) {
+func (m *MockEndpointRepo) GetByID(ctx context.Context, id string) (*domain.Endpoint, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByID", ctx, id)
 	ret0, _ := ret[0].(*domain.Endpoint)
@@ -91,13 +91,13 @@ func (m *MockRepo) GetByID(ctx context.Context, id string) (*domain.Endpoint, er
 }
 
 // GetByID indicates an expected call of GetByID.
-func (mr *MockRepoMockRecorder) GetByID(ctx, id interface{}) *gomock.Call {
+func (mr *MockEndpointRepoMockRecorder) GetByID(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockRepo)(nil).GetByID), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockEndpointRepo)(nil).GetByID), ctx, id)
 }
 
 // Update mocks base method.
-func (m *MockRepo) Update(ctx context.Context, command dto.UpdateEndpointCommand) error {
+func (m *MockEndpointRepo) Update(ctx context.Context, command dto.UpdateEndpointCommand) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", ctx, command)
 	ret0, _ := ret[0].(error)
@@ -105,7 +105,7 @@ func (m *MockRepo) Update(ctx context.Context, command dto.UpdateEndpointCommand
 }
 
 // Update indicates an expected call of Update.
-func (mr *MockRepoMockRecorder) Update(ctx, command interface{}) *gomock.Call {
+func (mr *MockEndpointRepoMockRecorder) Update(ctx, command interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockRepo)(nil).Update), ctx, command)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockEndpointRepo)(nil).Update), ctx, command)
 }

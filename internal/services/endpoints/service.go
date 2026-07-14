@@ -7,7 +7,7 @@ import (
 	"webhook-delivery/internal/domain/dto"
 )
 
-type Repo interface {
+type EndpointRepo interface {
 	Delete(ctx context.Context, id string) error
 	GetByID(ctx context.Context, id string) (*domain.Endpoint, error)
 	GetAll(ctx context.Context, command dto.GetAllEndpointsCommand) ([]domain.Endpoint, int, error)
@@ -17,9 +17,9 @@ type Repo interface {
 
 type Service struct {
 	log  *slog.Logger
-	repo Repo
+	repo EndpointRepo
 }
 
-func NewService(log *slog.Logger, repo Repo) *Service {
+func NewService(log *slog.Logger, repo EndpointRepo) *Service {
 	return &Service{log: log, repo: repo}
 }

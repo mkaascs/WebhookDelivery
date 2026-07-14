@@ -13,7 +13,7 @@ tasks:
   test:
     desc: "Run all tests"
     cmds:
-      - go test -v -coverprofile=coverage.out ./internal/delivery/...
+      - go test -v -coverprofile=coverage.out ./internal/delivery/... ./internal/services/...
   test:cover:
     desc: "Run all tests with visual coverage out"
     cmds:

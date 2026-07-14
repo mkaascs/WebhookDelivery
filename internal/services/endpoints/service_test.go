@@ -13,9 +13,9 @@ import (
 	"webhook-delivery/internal/mocks"
 )
 
-func newTestService(t *testing.T) (*Service, *mocks.MockRepo) {
+func newTestService(t *testing.T) (*Service, *mocks.MockEndpointRepo) {
 	ctrl := gomock.NewController(t)
-	repo := mocks.NewMockRepo(ctrl)
+	repo := mocks.NewMockEndpointRepo(ctrl)
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	return NewService(log, repo), repo
 }
