@@ -21,8 +21,7 @@ func New(log *slog.Logger, cfg config.DbConfig) (*App, error) {
 	const fn = "app.pg.App.New"
 	log = log.With(slog.String("fn", fn))
 
-	connectionString := fmt.Sprintf("postgres://%s:%s@%s/hookrelay?sslmode=disable",
-		cfg.User, cfg.Password, cfg.Addr)
+	connectionString := GetConnectionString(cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.ConnectionTimeout)
 	defer cancel()
@@ -64,4 +63,9 @@ func (a *App) Connect() error {
 
 func (a *App) Close() {
 	a.Pool.Close()
+}
+
+func GetConnectionString(cfg config.DbConfig) string {
+	return fmt.Sprintf("postgres://%s:%s@%s/hookrelay?sslmode=disable",
+		cfg.User, cfg.Password, cfg.Addr)
 }

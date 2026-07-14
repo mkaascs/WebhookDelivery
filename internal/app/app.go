@@ -20,6 +20,8 @@ func New(log *slog.Logger, cfg config.Config) *App {
 		os.Exit(1)
 	}
 
+	pg.MustMigrate(log, cfg.DbConfig)
+
 	return &App{
 		Http:     http.New(log, cfg.HttpConfig),
 		Postgres: postgresApp,
