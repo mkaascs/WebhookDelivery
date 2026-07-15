@@ -43,6 +43,12 @@ type DbConfig struct {
 	ConnectionTimeout time.Duration `yaml:"connection_timeout" default:"5s"`
 }
 
+type WorkersConfig struct {
+	MaxGoroutines int `yaml:"max_goroutines" default:"5"`
+	BatchSize     int `yaml:"batch_size" default:"10"`
+	MaxAttempts   int `yaml:"max_attempts" default:"5"`
+}
+
 func MustLoad() *Config {
 	cfg, err := Load()
 	if err != nil {

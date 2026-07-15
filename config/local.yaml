@@ -12,3 +12,7 @@ redis:
 db:
   addr: "localhost:5432"
   connection_timeout: 5s
+workers:
+  max_goroutines: 5
+  batch_size: 10
+  max_attempts: 5

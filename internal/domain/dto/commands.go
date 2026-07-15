@@ -1,6 +1,10 @@
 package dto
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+	"webhook-delivery/internal/domain"
+)
 
 type RegisterEndpointCommand struct {
 	URL         string
@@ -28,4 +32,10 @@ type AddSubscriptionCommand struct {
 type PublishEventCommand struct {
 	Type    string
 	Payload json.RawMessage
+}
+
+type UpdateDeliveryStatusCommand struct {
+	Status      domain.DeliveryStatus
+	Attempts    int
+	NextRetryAt time.Time
 }

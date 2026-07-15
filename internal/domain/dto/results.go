@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"encoding/json"
 	"time"
 	"webhook-delivery/internal/domain"
 )
@@ -37,4 +38,13 @@ type PublishEventResult struct {
 
 type GetEventResult struct {
 	Event domain.Event
+}
+
+type ClaimPendingResult struct {
+	URL         string
+	Secret      []byte
+	Payload     json.RawMessage
+	Attempts    int
+	MaxAttempts int
+	NextRetryAt time.Time
 }
