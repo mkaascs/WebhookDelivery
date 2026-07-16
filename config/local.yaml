@@ -16,3 +16,5 @@ workers:
   max_goroutines: 5
   batch_size: 10
   max_attempts: 5
+  base_backoff: 10s
+  max_backoff: 1h

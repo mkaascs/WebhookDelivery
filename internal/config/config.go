@@ -44,9 +44,11 @@ type DbConfig struct {
 }
 
 type WorkersConfig struct {
-	MaxGoroutines int `yaml:"max_goroutines" default:"5"`
-	BatchSize     int `yaml:"batch_size" default:"10"`
-	MaxAttempts   int `yaml:"max_attempts" default:"5"`
+	MaxGoroutines int           `yaml:"max_goroutines" default:"5"`
+	BatchSize     int           `yaml:"batch_size" default:"10"`
+	MaxAttempts   int           `yaml:"max_attempts" default:"5"`
+	BaseBackoff   time.Duration `yaml:"base_backoff" default:"10s"`
+	MaxBackoff    time.Duration `yaml:"max_backoff" default:"1h"`
 }
 
 func MustLoad() *Config {

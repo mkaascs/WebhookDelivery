@@ -3,9 +3,12 @@ package workers
 import (
 	"context"
 	"log/slog"
+	"math/rand"
+	"time"
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
+	"webhook-delivery/internal/services/utils"
 )
 
 func (s *Service) processBatch(ctx context.Context) {
@@ -14,7 +17,13 @@ func (s *Service) processBatch(ctx context.Context) {
 
 	deliveries, err := s.deliveryRepo.ClaimPending(ctx, s.cfg.BatchSize)
 	if err != nil {
-		handleRepoErr(log, "failed to claim pending delivery", err)
+		const msg = "failed to claim pending deliveries"
+		if utils.IsCtxError(err) {
+			log.Info(msg, sloglib.Error(err))
+			return
+		}
+
+		log.Warn(msg, sloglib.Error(err))
 		return
 	}
 
@@ -26,6 +35,7 @@ func (s *Service) processBatch(ctx context.Context) {
 
 	successCount, failedCount := 0, 0
 	for _, delivery := range deliveries {
+		delivery.Attempts++
 		code, err := sendPostRequest(delivery.URL, delivery.Payload, delivery.Secret)
 		if err != nil {
 			log.Warn("failed to send post request", sloglib.Error(err), slog.String("url", delivery.URL))
@@ -51,7 +61,7 @@ func (s *Service) processBatch(ctx context.Context) {
 func (s *Service) handleSuccessRequest(ctx context.Context, successDelivery dto.ClaimPendingResult) {
 	err := s.deliveryRepo.UpdateStatus(ctx, dto.UpdateDeliveryStatusCommand{
 		Status:      domain.StatusDelivered,
-		Attempts:    successDelivery.Attempts + 1,
+		Attempts:    successDelivery.Attempts,
 		NextRetryAt: successDelivery.NextRetryAt,
 	})
 
@@ -63,11 +73,23 @@ func (s *Service) handleSuccessRequest(ctx context.Context, successDelivery dto.
 func (s *Service) handleFailedRequest(ctx context.Context, failedDelivery dto.ClaimPendingResult) {
 	err := s.deliveryRepo.UpdateStatus(ctx, dto.UpdateDeliveryStatusCommand{
 		Status:      domain.StatusFailed,
-		Attempts:    failedDelivery.Attempts + 1,
-		NextRetryAt: failedDelivery.NextRetryAt.Add(backoff(failedDelivery.Attempts)),
+		Attempts:    failedDelivery.Attempts,
+		NextRetryAt: failedDelivery.NextRetryAt.Add(s.backoff(failedDelivery.Attempts)),
 	})
 
 	if err != nil {
 		s.log.Warn("failed to update status", sloglib.Error(err))
 	}
+}
+
+func (s *Service) backoff(attempts int) time.Duration {
+	delay := s.cfg.BaseBackoff * (2 << (attempts - 1))
+	if delay > float64(s.cfg.MaxBackoff) {
+		delay = float64(s.cfg.MaxBackoff)
+	}
+
+	jitter := delay * 0.2 * (rand.Float64()*2 - 1)
+	delay += jitter
+
+	return time.Duration(delay)
 }

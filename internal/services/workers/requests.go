@@ -6,11 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"log/slog"
 	"net/http"
-	"time"
-	sloglib "webhook-delivery/internal/lib/logging/slog"
-	"webhook-delivery/internal/services/utils"
 )
 
 func sendPostRequest(url string, payload json.RawMessage, secret []byte) (int, error) {
@@ -33,20 +29,6 @@ func sendPostRequest(url string, payload json.RawMessage, secret []byte) (int, e
 
 	statusCode := resp.StatusCode
 	return statusCode, resp.Body.Close()
-}
-
-func backoff(attempts int) time.Duration {
-	// TODO: realise
-	return time.Duration(attempts)
-}
-
-func handleRepoErr(log *slog.Logger, msg string, err error) {
-	if utils.IsCtxError(err) {
-		log.Info(msg, sloglib.Error(err))
-		return
-	}
-
-	log.Warn(msg, sloglib.Error(err))
 }
 
 func isSuccessCode(httpCode int) bool {
