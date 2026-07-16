@@ -83,7 +83,7 @@ func (s *Service) handleFailedRequest(ctx context.Context, failedDelivery dto.Cl
 }
 
 func (s *Service) backoff(attempts int) time.Duration {
-	delay := s.cfg.BaseBackoff * (2 << (attempts - 1))
+	delay := float64(s.cfg.BaseBackoff) * float64(2<<(attempts-1))
 	if delay > float64(s.cfg.MaxBackoff) {
 		delay = float64(s.cfg.MaxBackoff)
 	}
