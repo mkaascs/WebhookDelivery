@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"webhook-delivery/internal/delivery/middlewares"
 	"webhook-delivery/internal/domain/dto"
-	"webhook-delivery/internal/mocks"
 )
 
 func Test_GetAll(t *testing.T) {
@@ -21,13 +20,13 @@ func Test_GetAll(t *testing.T) {
 	tests := []struct {
 		name       string
 		query      string
-		setupMock  func(m *mocks.MockAllEndpointsGetter)
+		setupMock  func(m *MockAllEndpointsGetter)
 		wantStatus int
 	}{
 		{
 			name:  "success with explicit pagination",
 			query: "page=2&limit=50",
-			setupMock: func(m *mocks.MockAllEndpointsGetter) {
+			setupMock: func(m *MockAllEndpointsGetter) {
 				m.EXPECT().
 					GetAll(gomock.Any(), dto.GetAllEndpointsCommand{Page: 2, Limit: 50}).
 					Return(&dto.GetAllEndpointsResult{
@@ -40,7 +39,7 @@ func Test_GetAll(t *testing.T) {
 		{
 			name:  "success falls back to default pagination on invalid query",
 			query: "page=abc&limit=-5",
-			setupMock: func(m *mocks.MockAllEndpointsGetter) {
+			setupMock: func(m *MockAllEndpointsGetter) {
 				m.EXPECT().
 					GetAll(gomock.Any(), dto.GetAllEndpointsCommand{Page: 1, Limit: 10}).
 					Return(&dto.GetAllEndpointsResult{Total: 0, Endpoints: nil}, nil)
@@ -50,7 +49,7 @@ func Test_GetAll(t *testing.T) {
 		{
 			name:  "generic internal error",
 			query: "",
-			setupMock: func(m *mocks.MockAllEndpointsGetter) {
+			setupMock: func(m *MockAllEndpointsGetter) {
 				m.EXPECT().GetAll(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("redis down"))
 			},
@@ -61,7 +60,7 @@ func Test_GetAll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			getter := mocks.NewMockAllEndpointsGetter(ctrl)
+			getter := NewMockAllEndpointsGetter(ctrl)
 			if tt.setupMock != nil {
 				tt.setupMock(getter)
 			}

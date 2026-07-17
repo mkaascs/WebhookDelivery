@@ -11,7 +11,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"webhook-delivery/internal/domain"
-	"webhook-delivery/internal/mocks"
 )
 
 func Test_Delete(t *testing.T) {
@@ -20,13 +19,13 @@ func Test_Delete(t *testing.T) {
 	tests := []struct {
 		name       string
 		query      string
-		setupMock  func(m *mocks.MockSubscriptionDeleter)
+		setupMock  func(m *MockSubscriptionDeleter)
 		wantStatus int
 	}{
 		{
 			name:  "success",
 			query: "id=sub-1",
-			setupMock: func(m *mocks.MockSubscriptionDeleter) {
+			setupMock: func(m *MockSubscriptionDeleter) {
 				m.EXPECT().Delete(gomock.Any(), "sub-1").Return(nil)
 			},
 			wantStatus: http.StatusNoContent,
@@ -39,7 +38,7 @@ func Test_Delete(t *testing.T) {
 		{
 			name:  "subscription not found",
 			query: "id=sub-404",
-			setupMock: func(m *mocks.MockSubscriptionDeleter) {
+			setupMock: func(m *MockSubscriptionDeleter) {
 				m.EXPECT().Delete(gomock.Any(), "sub-404").Return(domain.ErrSubscriptionNotFound)
 			},
 			wantStatus: http.StatusNotFound,
@@ -47,7 +46,7 @@ func Test_Delete(t *testing.T) {
 		{
 			name:  "generic internal error",
 			query: "id=sub-1",
-			setupMock: func(m *mocks.MockSubscriptionDeleter) {
+			setupMock: func(m *MockSubscriptionDeleter) {
 				m.EXPECT().Delete(gomock.Any(), "sub-1").Return(errors.New("redis down"))
 			},
 			wantStatus: http.StatusInternalServerError,
@@ -57,7 +56,7 @@ func Test_Delete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			deleter := mocks.NewMockSubscriptionDeleter(ctrl)
+			deleter := NewMockSubscriptionDeleter(ctrl)
 			if tt.setupMock != nil {
 				tt.setupMock(deleter)
 			}

@@ -14,7 +14,6 @@ import (
 	"webhook-delivery/internal/delivery/middlewares"
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
-	"webhook-delivery/internal/mocks"
 )
 
 func Test_Register(t *testing.T) {
@@ -23,13 +22,13 @@ func Test_Register(t *testing.T) {
 	tests := []struct {
 		name       string
 		body       string
-		setupMock  func(m *mocks.MockEndpointRegistrar)
+		setupMock  func(m *MockEndpointRegistrar)
 		wantStatus int
 	}{
 		{
 			name: "success",
 			body: `{"url":"https://hooks.example.com/billing","event_types":["order.created"]}`,
-			setupMock: func(m *mocks.MockEndpointRegistrar) {
+			setupMock: func(m *MockEndpointRegistrar) {
 				m.EXPECT().Register(gomock.Any(), gomock.Any()).
 					Return(&dto.RegisterEndpointResult{ID: "ep-123", Secret: "whsec_x", IsActive: true}, nil)
 			},
@@ -48,7 +47,7 @@ func Test_Register(t *testing.T) {
 		{
 			name: "domain not found error",
 			body: `{"url":"https://hooks.example.com/hook"}`,
-			setupMock: func(m *mocks.MockEndpointRegistrar) {
+			setupMock: func(m *MockEndpointRegistrar) {
 				m.EXPECT().Register(gomock.Any(), gomock.Any()).
 					Return(nil, domain.ErrEndpointNotFound)
 			},
@@ -57,7 +56,7 @@ func Test_Register(t *testing.T) {
 		{
 			name: "generic internal error",
 			body: `{"url":"https://hooks.example.com/hook"}`,
-			setupMock: func(m *mocks.MockEndpointRegistrar) {
+			setupMock: func(m *MockEndpointRegistrar) {
 				m.EXPECT().Register(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("redis down"))
 			},
@@ -68,7 +67,7 @@ func Test_Register(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			registrar := mocks.NewMockEndpointRegistrar(ctrl)
+			registrar := NewMockEndpointRegistrar(ctrl)
 			if tt.setupMock != nil {
 				tt.setupMock(registrar)
 			}

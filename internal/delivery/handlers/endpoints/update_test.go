@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"webhook-delivery/internal/delivery/middlewares"
 	"webhook-delivery/internal/domain"
-	"webhook-delivery/internal/mocks"
 )
 
 func Test_Update(t *testing.T) {
@@ -23,14 +22,14 @@ func Test_Update(t *testing.T) {
 		name       string
 		id         string
 		body       string
-		setupMock  func(m *mocks.MockEndpointUpdater)
+		setupMock  func(m *MockEndpointUpdater)
 		wantStatus int
 	}{
 		{
 			name: "success",
 			id:   "ep-1",
 			body: `{"url":"https://hooks.example.com/hook","is_active":false}`,
-			setupMock: func(m *mocks.MockEndpointUpdater) {
+			setupMock: func(m *MockEndpointUpdater) {
 				m.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			wantStatus: http.StatusNoContent,
@@ -51,7 +50,7 @@ func Test_Update(t *testing.T) {
 			name: "endpoint not found",
 			id:   "ep-404",
 			body: `{"url":"https://hooks.example.com/hook"}`,
-			setupMock: func(m *mocks.MockEndpointUpdater) {
+			setupMock: func(m *MockEndpointUpdater) {
 				m.EXPECT().Update(gomock.Any(), gomock.Any()).Return(domain.ErrEndpointNotFound)
 			},
 			wantStatus: http.StatusNotFound,
@@ -60,7 +59,7 @@ func Test_Update(t *testing.T) {
 			name: "generic internal error",
 			id:   "ep-1",
 			body: `{"url":"https://hooks.example.com/hook"}`,
-			setupMock: func(m *mocks.MockEndpointUpdater) {
+			setupMock: func(m *MockEndpointUpdater) {
 				m.EXPECT().Update(gomock.Any(), gomock.Any()).Return(errors.New("redis down"))
 			},
 			wantStatus: http.StatusInternalServerError,
@@ -70,7 +69,7 @@ func Test_Update(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			updater := mocks.NewMockEndpointUpdater(ctrl)
+			updater := NewMockEndpointUpdater(ctrl)
 			if tt.setupMock != nil {
 				tt.setupMock(updater)
 			}

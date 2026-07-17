@@ -14,7 +14,6 @@ import (
 	"webhook-delivery/internal/delivery/middlewares"
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
-	"webhook-delivery/internal/mocks"
 )
 
 func Test_Publish(t *testing.T) {
@@ -23,13 +22,13 @@ func Test_Publish(t *testing.T) {
 	tests := []struct {
 		name       string
 		body       string
-		setupMock  func(m *mocks.MockEventPublisher)
+		setupMock  func(m *MockEventPublisher)
 		wantStatus int
 	}{
 		{
 			name: "success",
 			body: `{"type":"order.created","payload":{"amount":100}}`,
-			setupMock: func(m *mocks.MockEventPublisher) {
+			setupMock: func(m *MockEventPublisher) {
 				m.EXPECT().Publish(gomock.Any(), gomock.Any()).
 					Return(&dto.PublishEventResult{
 						Event:             domain.Event{ID: "ev-1", Type: "order.created"},
@@ -51,7 +50,7 @@ func Test_Publish(t *testing.T) {
 		{
 			name: "generic internal error",
 			body: `{"type":"order.created","payload":{"amount":100}}`,
-			setupMock: func(m *mocks.MockEventPublisher) {
+			setupMock: func(m *MockEventPublisher) {
 				m.EXPECT().Publish(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("redis down"))
 			},
@@ -62,7 +61,7 @@ func Test_Publish(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			publisher := mocks.NewMockEventPublisher(ctrl)
+			publisher := NewMockEventPublisher(ctrl)
 			if tt.setupMock != nil {
 				tt.setupMock(publisher)
 			}

@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
-	"webhook-delivery/internal/mocks"
 )
 
 func Test_Get(t *testing.T) {
@@ -21,13 +20,13 @@ func Test_Get(t *testing.T) {
 	tests := []struct {
 		name       string
 		query      string
-		setupMock  func(m *mocks.MockEndpointGetter)
+		setupMock  func(m *MockEndpointGetter)
 		wantStatus int
 	}{
 		{
 			name:  "success",
 			query: "id=ep-123",
-			setupMock: func(m *mocks.MockEndpointGetter) {
+			setupMock: func(m *MockEndpointGetter) {
 				m.EXPECT().GetByID(gomock.Any(), "ep-123").
 					Return(&dto.GetEndpointResult{ID: "ep-123", URL: "https://hooks.example.com", IsActive: true}, nil)
 			},
@@ -41,7 +40,7 @@ func Test_Get(t *testing.T) {
 		{
 			name:  "endpoint not found",
 			query: "id=ep-404",
-			setupMock: func(m *mocks.MockEndpointGetter) {
+			setupMock: func(m *MockEndpointGetter) {
 				m.EXPECT().GetByID(gomock.Any(), "ep-404").
 					Return(nil, domain.ErrEndpointNotFound)
 			},
@@ -50,7 +49,7 @@ func Test_Get(t *testing.T) {
 		{
 			name:  "generic internal error",
 			query: "id=ep-123",
-			setupMock: func(m *mocks.MockEndpointGetter) {
+			setupMock: func(m *MockEndpointGetter) {
 				m.EXPECT().GetByID(gomock.Any(), "ep-123").
 					Return(nil, errors.New("redis down"))
 			},
@@ -61,7 +60,7 @@ func Test_Get(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			getter := mocks.NewMockEndpointGetter(ctrl)
+			getter := NewMockEndpointGetter(ctrl)
 			if tt.setupMock != nil {
 				tt.setupMock(getter)
 			}

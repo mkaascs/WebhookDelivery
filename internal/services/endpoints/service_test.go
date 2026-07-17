@@ -10,12 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
-	"webhook-delivery/internal/mocks"
 )
 
-func newTestService(t *testing.T) (*Service, *mocks.MockEndpointRepo) {
+func newTestService(t *testing.T) (*Service, *MockEndpointRepo) {
 	ctrl := gomock.NewController(t)
-	repo := mocks.NewMockEndpointRepo(ctrl)
+	repo := NewMockEndpointRepo(ctrl)
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	return NewService(log, repo), repo
 }

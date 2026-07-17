@@ -16,7 +16,6 @@ import (
 	"webhook-delivery/internal/delivery/middlewares"
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
-	"webhook-delivery/internal/mocks"
 )
 
 func Test_Subscribe(t *testing.T) {
@@ -26,14 +25,14 @@ func Test_Subscribe(t *testing.T) {
 		name       string
 		endpointID string
 		body       string
-		setupMock  func(m *mocks.MockSubscriptionAdder)
+		setupMock  func(m *MockSubscriptionAdder)
 		wantStatus int
 	}{
 		{
 			name:       "success",
 			endpointID: "ep-1",
 			body:       `{"event_types":["order.created"]}`,
-			setupMock: func(m *mocks.MockSubscriptionAdder) {
+			setupMock: func(m *MockSubscriptionAdder) {
 				m.EXPECT().
 					Add(gomock.Any(), dto.AddSubscriptionCommand{EndpointID: "ep-1", EventTypes: []string{"order.created"}}).
 					Return(&dto.AddSubscriptionResult{
@@ -58,7 +57,7 @@ func Test_Subscribe(t *testing.T) {
 			name:       "endpoint not found",
 			endpointID: "ep-404",
 			body:       `{"event_types":["order.created"]}`,
-			setupMock: func(m *mocks.MockSubscriptionAdder) {
+			setupMock: func(m *MockSubscriptionAdder) {
 				m.EXPECT().Add(gomock.Any(), gomock.Any()).Return(nil, domain.ErrEndpointNotFound)
 			},
 			wantStatus: http.StatusNotFound,
@@ -67,7 +66,7 @@ func Test_Subscribe(t *testing.T) {
 			name:       "subscription already exists",
 			endpointID: "ep-1",
 			body:       `{"event_types":["order.created"]}`,
-			setupMock: func(m *mocks.MockSubscriptionAdder) {
+			setupMock: func(m *MockSubscriptionAdder) {
 				m.EXPECT().Add(gomock.Any(), gomock.Any()).Return(nil, domain.ErrSubscriptionAlreadyExists)
 			},
 			wantStatus: http.StatusConflict,
@@ -76,7 +75,7 @@ func Test_Subscribe(t *testing.T) {
 			name:       "generic internal error",
 			endpointID: "ep-1",
 			body:       `{"event_types":["order.created"]}`,
-			setupMock: func(m *mocks.MockSubscriptionAdder) {
+			setupMock: func(m *MockSubscriptionAdder) {
 				m.EXPECT().Add(gomock.Any(), gomock.Any()).Return(nil, errors.New("redis down"))
 			},
 			wantStatus: http.StatusInternalServerError,
@@ -86,7 +85,7 @@ func Test_Subscribe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			adder := mocks.NewMockSubscriptionAdder(ctrl)
+			adder := NewMockSubscriptionAdder(ctrl)
 			if tt.setupMock != nil {
 				tt.setupMock(adder)
 			}
