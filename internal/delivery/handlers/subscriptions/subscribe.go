@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/render"
 	"log/slog"
 	"net/http"
+	"time"
 	"webhook-delivery/internal/delivery/middlewares"
 	"webhook-delivery/internal/delivery/utils"
 	"webhook-delivery/internal/domain/dto"
@@ -14,8 +15,10 @@ import (
 )
 
 type SubscriptionInfo struct {
-	ID        string `json:"id"`
-	EventType string `json:"event_type"`
+	ID         string    `json:"id"`
+	EndpointID string    `json:"endpoint_id"`
+	EventType  string    `json:"event_type"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 type SubscribeRequest struct {
@@ -78,8 +81,10 @@ func Subscribe(adder SubscriptionAdder, log *slog.Logger) http.HandlerFunc {
 		subInfo := make([]SubscriptionInfo, 0, len(result.Subscriptions))
 		for _, sub := range result.Subscriptions {
 			subInfo = append(subInfo, SubscriptionInfo{
-				ID:        sub.ID,
-				EventType: sub.EventType,
+				ID:         sub.ID,
+				EventType:  sub.EventType,
+				CreatedAt:  sub.CreatedAt,
+				EndpointID: sub.EndpointID,
 			})
 		}
 

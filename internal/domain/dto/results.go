@@ -53,3 +53,10 @@ type AddEndpointResult struct {
 	ID        string
 	CreatedAt time.Time
 }
+
+type GetSubscriptionResult struct {
+	ID         string
+	EndpointID string
+	EventType  string
+	CreatedAt  time.Time
+}
