@@ -7,9 +7,49 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"log/slog"
 	"webhook-delivery/internal/domain"
+	"webhook-delivery/internal/domain/dto"
 	"webhook-delivery/internal/lib/uuid"
 )
+
+type Subscriptions struct {
+	pool *pgxpool.Pool
+	log  *slog.Logger
+}
+
+func NewSubscriptions(pool *pgxpool.Pool, log *slog.Logger) *Subscriptions {
+	return &Subscriptions{pool: pool, log: log}
+}
+
+func (s *Subscriptions) Add(ctx context.Context, command dto.AddSubscriptionCommand) ([]domain.Subscription, error) {
+	if err := insertSubscription(ctx, s.pool, command.EndpointID, command.EventTypes); err != nil {
+		return nil, err
+	}
+
+	result, err := getEndpointSubscriptions(ctx, s.pool, command.EndpointID)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (s *Subscriptions) Delete(ctx context.Context, id string) error {
+	const fn = "infrastructure.pg.Subscriptions.Delete"
+
+	res, err := s.pool.Exec(ctx, `DELETE FROM subscriptions WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("%s: %w", fn, err)
+	}
+
+	if res.RowsAffected() == 0 {
+		return domain.ErrSubscriptionNotFound
+	}
+
+	return nil
+}
 
 func insertSubscription(ctx context.Context, pool poolQuery, endpointID string, eventTypes []string) (err error) {
 	const fn = "infrastructure.pg.insertSubscription"
@@ -46,11 +86,11 @@ func insertSubscription(ctx context.Context, pool poolQuery, endpointID string, 
 	return nil
 }
 
-func getEndpointEventTypes(ctx context.Context, pool poolQuery, endpointID string) ([]string, error) {
-	const fn = "infrastructure.pg.getEndpointEventTypes"
+func getEndpointSubscriptions(ctx context.Context, pool poolQuery, endpointID string) ([]domain.Subscription, error) {
+	const fn = "infrastructure.pg.getEndpointSubscriptions"
 
 	rows, err := pool.Query(ctx, `
-		SELECT event_types
+		SELECT id, event_type, created_at
 		FROM subscriptions
 		WHERE endpoint_id = $1`, endpointID)
 
@@ -60,15 +100,15 @@ func getEndpointEventTypes(ctx context.Context, pool poolQuery, endpointID strin
 
 	defer rows.Close()
 
-	eventTypes := make([]string, 0)
+	subs := make([]domain.Subscription, 0)
 	for rows.Next() {
-		var eventType string
-		if err := rows.Scan(&eventType); err != nil {
+		s := domain.Subscription{EndpointID: endpointID}
+		if err := rows.Scan(&s.ID, &s.EventType, &s.CreatedAt); err != nil {
 			return nil, fmt.Errorf("%s: %w", fn, err)
 		}
 
-		eventTypes = append(eventTypes, eventType)
+		subs = append(subs, s)
 	}
 
-	return eventTypes, nil
+	return subs, nil
 }

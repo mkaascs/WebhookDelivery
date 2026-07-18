@@ -84,12 +84,15 @@ func (e *Endpoints) GetByID(ctx context.Context, id string) (*domain.Endpoint, e
 		return nil, fmt.Errorf("%s: %w", fn, err)
 	}
 
-	eventTypes, err := getEndpointEventTypes(ctx, e.pool, endpoint.ID)
+	subs, err := getEndpointSubscriptions(ctx, e.pool, endpoint.ID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", fn, err)
 	}
 
-	endpoint.EventTypes = eventTypes
+	for _, sub := range subs {
+		endpoint.EventTypes = append(endpoint.EventTypes, sub.EventType)
+	}
+
 	return endpoint, nil
 }
 
@@ -119,12 +122,15 @@ func (e *Endpoints) GetAll(ctx context.Context, command dto.GetAllEndpointsComma
 			return nil, fmt.Errorf("%s: %w", fn, err)
 		}
 
-		eventTypes, err := getEndpointEventTypes(ctx, e.pool, ep.ID)
+		subs, err := getEndpointSubscriptions(ctx, e.pool, ep.ID)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", fn, err)
 		}
 
-		ep.EventTypes = eventTypes
+		for _, sub := range subs {
+			ep.EventTypes = append(ep.EventTypes, sub.EventType)
+		}
+
 		results = append(results, ep)
 	}
 
