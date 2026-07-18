@@ -18,7 +18,7 @@ type Endpoints struct {
 	log  *slog.Logger
 }
 
-func NewRepo(pool *pgxpool.Pool, log *slog.Logger) *Endpoints {
+func NewEndpoints(pool *pgxpool.Pool, log *slog.Logger) *Endpoints {
 	return &Endpoints{pool: pool, log: log}
 }
 
