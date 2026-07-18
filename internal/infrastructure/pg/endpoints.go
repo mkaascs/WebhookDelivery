@@ -96,7 +96,7 @@ func (e *Endpoints) GetByID(ctx context.Context, id string) (*domain.Endpoint, e
 	return endpoint, nil
 }
 
-func (e *Endpoints) GetAll(ctx context.Context, command dto.GetAllEndpointsCommand) ([]domain.Endpoint, error) {
+func (e *Endpoints) GetAll(ctx context.Context, command dto.GetAllEndpointsCommand) ([]domain.Endpoint, int, error) {
 	const fn = "infrastructure.pg.Endpoints.GetAll"
 
 	offset := (command.Page - 1) * command.Limit
@@ -109,7 +109,7 @@ func (e *Endpoints) GetAll(ctx context.Context, command dto.GetAllEndpointsComma
 		OFFSET $2`, command.Limit, offset)
 
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", fn, err)
+		return nil, 0, fmt.Errorf("%s: %w", fn, err)
 	}
 
 	defer rows.Close()
@@ -119,12 +119,12 @@ func (e *Endpoints) GetAll(ctx context.Context, command dto.GetAllEndpointsComma
 	for rows.Next() {
 		var ep domain.Endpoint
 		if err := rows.Scan(&ep.ID, &ep.URL, &ep.Secret, &ep.Description, &ep.IsActive, &ep.CreatedAt); err != nil {
-			return nil, fmt.Errorf("%s: %w", fn, err)
+			return nil, 0, fmt.Errorf("%s: %w", fn, err)
 		}
 
 		subs, err := getEndpointSubscriptions(ctx, e.pool, ep.ID)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", fn, err)
+			return nil, 0, fmt.Errorf("%s: %w", fn, err)
 		}
 
 		for _, sub := range subs {
@@ -134,7 +134,13 @@ func (e *Endpoints) GetAll(ctx context.Context, command dto.GetAllEndpointsComma
 		results = append(results, ep)
 	}
 
-	return results, nil
+	var total int
+	err = e.pool.QueryRow(ctx, `SELECT COUNT(*) FROM endpoints`).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	return results, total, nil
 }
 
 func (e *Endpoints) Delete(ctx context.Context, id string) error {
