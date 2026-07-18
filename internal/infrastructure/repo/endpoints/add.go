@@ -32,7 +32,7 @@ func (r *Repo) Add(ctx context.Context, command dto.AddEndpointCommand) (*dto.Ad
 	var endpointID string
 	var createdAt time.Time
 
-	err = tx.QueryRow(`
+	err = tx.QueryRowContext(ctx, `
 		INSERT INTO endpoints (id, url, secret, description, is_active)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, created_at`).
