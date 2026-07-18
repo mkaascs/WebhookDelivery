@@ -8,7 +8,7 @@ import (
 type Endpoint struct {
 	ID          string
 	URL         string
-	Secret      []byte
+	Secret      string
 	EventTypes  []string
 	Description *string
 	IsActive    bool

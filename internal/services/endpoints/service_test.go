@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -21,20 +22,34 @@ func newTestService(t *testing.T) (*Service, *MockEndpointRepo) {
 
 func Test_Service_Register(t *testing.T) {
 	cmd := dto.RegisterEndpointCommand{URL: "https://hooks.example.com", EventTypes: []string{"order.created"}}
-	want := &dto.RegisterEndpointResult{ID: "ep-1", Secret: "whsec_x", IsActive: true}
 
 	t.Run("success", func(t *testing.T) {
 		svc, repo := newTestService(t)
-		repo.EXPECT().AddEndpoint(gomock.Any(), cmd).Return(want, nil)
+		added := &dto.AddEndpointResult{ID: "ep-1", CreatedAt: time.Date(2026, time.July, 1, 12, 0, 0, 0, time.UTC)}
+
+		var gotCmd dto.AddEndpointCommand
+		repo.EXPECT().Add(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, c dto.AddEndpointCommand) (*dto.AddEndpointResult, error) {
+				gotCmd = c
+				return added, nil
+			})
 
 		got, err := svc.Register(context.Background(), cmd)
 		require.NoError(t, err)
-		require.Equal(t, want, got)
+
+		require.Equal(t, cmd.URL, gotCmd.URL)
+		require.Equal(t, cmd.EventTypes, gotCmd.EventTypes)
+		require.NotEmpty(t, gotCmd.Secret)
+
+		require.Equal(t, added.ID, got.ID)
+		require.Equal(t, added.CreatedAt, got.CreatedAt)
+		require.True(t, got.IsActive)
+		require.Equal(t, gotCmd.Secret, got.Secret)
 	})
 
 	t.Run("error is wrapped", func(t *testing.T) {
 		svc, repo := newTestService(t)
-		repo.EXPECT().AddEndpoint(gomock.Any(), cmd).Return(nil, domain.ErrEndpointNotFound)
+		repo.EXPECT().Add(gomock.Any(), gomock.Any()).Return(nil, domain.ErrEndpointNotFound)
 
 		got, err := svc.Register(context.Background(), cmd)
 		require.Nil(t, got)

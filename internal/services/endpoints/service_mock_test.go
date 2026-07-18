@@ -36,19 +36,19 @@ func (m *MockEndpointRepo) EXPECT() *MockEndpointRepoMockRecorder {
 	return m.recorder
 }
 
-// AddEndpoint mocks base method.
-func (m *MockEndpointRepo) AddEndpoint(ctx context.Context, command dto.RegisterEndpointCommand) (*dto.RegisterEndpointResult, error) {
+// Add mocks base method.
+func (m *MockEndpointRepo) Add(ctx context.Context, command dto.AddEndpointCommand) (*dto.AddEndpointResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddEndpoint", ctx, command)
-	ret0, _ := ret[0].(*dto.RegisterEndpointResult)
+	ret := m.ctrl.Call(m, "Add", ctx, command)
+	ret0, _ := ret[0].(*dto.AddEndpointResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// AddEndpoint indicates an expected call of AddEndpoint.
-func (mr *MockEndpointRepoMockRecorder) AddEndpoint(ctx, command interface{}) *gomock.Call {
+// Add indicates an expected call of Add.
+func (mr *MockEndpointRepoMockRecorder) Add(ctx, command interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddEndpoint", reflect.TypeOf((*MockEndpointRepo)(nil).AddEndpoint), ctx, command)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockEndpointRepo)(nil).Add), ctx, command)
 }
 
 // Delete mocks base method.

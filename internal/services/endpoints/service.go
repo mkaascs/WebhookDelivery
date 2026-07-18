@@ -12,7 +12,7 @@ type EndpointRepo interface {
 	GetByID(ctx context.Context, id string) (*domain.Endpoint, error)
 	GetAll(ctx context.Context, command dto.GetAllEndpointsCommand) ([]domain.Endpoint, int, error)
 	Update(ctx context.Context, command dto.UpdateEndpointCommand) error
-	AddEndpoint(ctx context.Context, command dto.RegisterEndpointCommand) (*dto.RegisterEndpointResult, error)
+	Add(ctx context.Context, command dto.AddEndpointCommand) (*dto.AddEndpointResult, error)
 }
 
 type Service struct {

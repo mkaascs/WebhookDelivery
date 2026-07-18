@@ -39,3 +39,10 @@ type UpdateDeliveryStatusCommand struct {
 	Attempts    int
 	NextRetryAt time.Time
 }
+
+type AddEndpointCommand struct {
+	URL         string
+	EventTypes  []string
+	Description *string
+	Secret      string
+}

@@ -48,3 +48,8 @@ type ClaimPendingResult struct {
 	MaxAttempts int
 	NextRetryAt time.Time
 }
+
+type AddEndpointResult struct {
+	ID        string
+	CreatedAt time.Time
+}
