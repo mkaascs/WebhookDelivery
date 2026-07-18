@@ -2,11 +2,7 @@ package pg
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log/slog"
 	"webhook-delivery/internal/domain"
@@ -24,16 +20,13 @@ func NewSubscriptions(pool *pgxpool.Pool, log *slog.Logger) *Subscriptions {
 }
 
 func (s *Subscriptions) Add(ctx context.Context, command dto.AddSubscriptionCommand) ([]domain.Subscription, error) {
-	if err := insertSubscription(ctx, s.pool, command.EndpointID, command.EventTypes); err != nil {
-		return nil, err
-	}
+	subs, err := insertSubscription(ctx, s.pool, command.EndpointID, command.EventTypes)
+	return subs, err
+}
 
-	result, err := getEndpointSubscriptions(ctx, s.pool, command.EndpointID)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+func (s *Subscriptions) GetAll(ctx context.Context, endpointID string) ([]domain.Subscription, error) {
+	subs, err := getEndpointSubscriptions(ctx, s.pool, endpointID)
+	return subs, err
 }
 
 func (s *Subscriptions) Delete(ctx context.Context, id string) error {
@@ -51,39 +44,38 @@ func (s *Subscriptions) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func insertSubscription(ctx context.Context, pool poolQuery, endpointID string, eventTypes []string) (err error) {
+func insertSubscription(ctx context.Context, pool poolQuery, endpointID string, eventTypes []string) ([]domain.Subscription, error) {
 	const fn = "infrastructure.pg.insertSubscription"
 
-	batch := &pgx.Batch{}
-	for _, eventType := range eventTypes {
-		batch.Queue(`
-			INSERT INTO subscriptions(id, endpoint_id, event_type) 
-			VALUES ($1, $2, $3)`,
-			uuid.NewSubscription(), endpointID, eventType)
-	}
-
-	res := pool.SendBatch(ctx, batch)
-	defer func(res pgx.BatchResults) {
-		if err != nil {
-			_ = res.Close()
-			return
-		}
-
-		err = res.Close()
-	}(res)
-
+	subIDs := make([]string, 0, len(eventTypes))
 	for range eventTypes {
-		if _, err := res.Exec(); err != nil {
-			var pgErr *pgconn.PgError
-			if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-				return domain.ErrSubscriptionAlreadyExists
-			}
-
-			return fmt.Errorf("%s: %w", fn, err)
-		}
+		subIDs = append(subIDs, uuid.NewSubscription())
 	}
 
-	return nil
+	rows, err := pool.Query(ctx, `
+		INSERT INTO subscriptions(id, endpoint_id, event_type)
+		SELECT unnest($1::text[]), $2, unnest($3::text[])
+		ON CONFLICT (endpoint_id, event_type) DO NOTHING
+		RETURNING id, event_type, created_at`,
+		subIDs, endpointID, eventTypes)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	defer rows.Close()
+
+	subs := make([]domain.Subscription, 0)
+	for rows.Next() {
+		sub := domain.Subscription{EndpointID: endpointID}
+		if err := rows.Scan(&sub.ID, &sub.EventType, &sub.CreatedAt); err != nil {
+			return nil, fmt.Errorf("%s: %w", fn, err)
+		}
+
+		subs = append(subs, sub)
+	}
+
+	return subs, nil
 }
 
 func getEndpointSubscriptions(ctx context.Context, pool poolQuery, endpointID string) ([]domain.Subscription, error) {
