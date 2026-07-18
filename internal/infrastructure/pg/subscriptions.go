@@ -11,7 +11,7 @@ import (
 	"webhook-delivery/internal/lib/uuid"
 )
 
-func insertSubscription(ctx context.Context, pool poolQuery, endpointID string, eventTypes []string) error {
+func insertSubscription(ctx context.Context, pool poolQuery, endpointID string, eventTypes []string) (err error) {
 	const fn = "infrastructure.pg.insertSubscription"
 
 	batch := &pgx.Batch{}
@@ -23,7 +23,14 @@ func insertSubscription(ctx context.Context, pool poolQuery, endpointID string, 
 	}
 
 	res := pool.SendBatch(ctx, batch)
-	defer res.Close()
+	defer func(res pgx.BatchResults) {
+		if err != nil {
+			_ = res.Close()
+			return
+		}
+
+		err = res.Close()
+	}(res)
 
 	for range eventTypes {
 		if _, err := res.Exec(); err != nil {
