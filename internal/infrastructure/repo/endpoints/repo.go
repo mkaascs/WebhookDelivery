@@ -1,13 +1,15 @@
 package endpoints
 
 import (
-	"webhook-delivery/internal/infrastructure/pg"
+	"log/slog"
+	"webhook-delivery/internal/infrastructure/repo"
 )
 
 type Repo struct {
-	db pg.DB
+	db  repo.DB
+	log *slog.Logger
 }
 
-func NewRepo(db pg.DB) *Repo {
-	return &Repo{db: db}
+func NewRepo(db repo.DB, log *slog.Logger) *Repo {
+	return &Repo{db: db, log: log}
 }
