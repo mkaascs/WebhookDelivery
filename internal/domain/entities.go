@@ -32,9 +32,10 @@ type Event struct {
 type DeliveryStatus string
 
 const (
-	StatusDelivered = DeliveryStatus("delivered")
-	StatusPending   = DeliveryStatus("pending")
-	StatusFailed    = DeliveryStatus("failed")
+	StatusDelivered  DeliveryStatus = "delivered"
+	StatusPending    DeliveryStatus = "pending"
+	StatusFailed     DeliveryStatus = "failed"
+	StatusProcessing DeliveryStatus = "processing"
 )
 
 type Deliveries struct {
