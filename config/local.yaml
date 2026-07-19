@@ -3,12 +3,6 @@ http_server:
   port: 8080
   write_timeout: 5s
   read_timeout: 10s
-redis:
-  addr: "localhost:6379"
-  db: 0
-  idle_timeout: 10s
-  timeout: 5s
-  max_retries: 1
 db:
   addr: "localhost:5432"
   connection_timeout: 5s

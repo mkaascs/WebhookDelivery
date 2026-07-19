@@ -16,24 +16,15 @@ const (
 )
 
 type Config struct {
-	Env         string `yaml:"env" default:"local"`
-	DbConfig    `yaml:"db"`
-	HttpConfig  `yaml:"http_server"`
-	RedisConfig `yaml:"redis"`
+	Env        string `yaml:"env" default:"local"`
+	DbConfig   `yaml:"db"`
+	HttpConfig `yaml:"http_server"`
 }
 
 type HttpConfig struct {
 	Port         int           `yaml:"port" default:"8080"`
 	WriteTimeout time.Duration `yaml:"write_timeout" default:"5s"`
 	ReadTimeout  time.Duration `yaml:"read_timeout" default:"10s"`
-}
-
-type RedisConfig struct {
-	Addr        string        `yaml:"host" required:"true"`
-	Db          int16         `yaml:"db" default:"0"`
-	IdleTimeout time.Duration `yaml:"idle_timeout" default:"10s"`
-	Timeout     time.Duration `yaml:"timeout" default:"5s"`
-	MaxRetries  int           `yaml:"max_retries" default:"1"`
 }
 
 type DbConfig struct {
