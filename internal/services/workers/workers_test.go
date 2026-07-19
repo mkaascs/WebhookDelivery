@@ -132,46 +132,48 @@ func Test_processBatch(t *testing.T) {
 		svc.processBatch(context.Background())
 	})
 
-	t.Run("2xx marks delivery as delivered", func(t *testing.T) {
-		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-		}))
-		defer srv.Close()
+	t.Run("update status by response code and attempts", func(t *testing.T) {
+		cases := []struct {
+			name         string
+			serverCode   int
+			attempts     int
+			maxAttempts  int
+			wantStatus   domain.DeliveryStatus
+			wantAttempts int
+		}{
+			{"2xx -> delivered", http.StatusOK, 0, 5, domain.StatusDelivered, 1},
+			{"non-2xx with attempts left -> pending", http.StatusInternalServerError, 0, 5, domain.StatusPending, 1},
+			{"non-2xx with attempts exhausted -> failed", http.StatusInternalServerError, 4, 5, domain.StatusFailed, 5},
+		}
 
-		svc, repo := newTestService(t, testConfig())
-		repo.EXPECT().ClaimPending(gomock.Any(), gomock.Any()).
-			Return([]dto.ClaimPendingResult{newDelivery(srv.URL)}, nil)
-		repo.EXPECT().UpdateStatus(gomock.Any(), dto.UpdateDeliveryStatusCommand{
-			Status:      domain.StatusDelivered,
-			Attempts:    1,
-			NextRetryAt: fixedTime,
-		}).Return(nil)
+		for _, c := range cases {
+			t.Run(c.name, func(t *testing.T) {
+				srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(c.serverCode)
+				}))
+				defer srv.Close()
 
-		svc.processBatch(context.Background())
-	})
+				svc, repo := newTestService(t, testConfig())
+				delivery := newDelivery(srv.URL)
+				delivery.Attempts = c.attempts
+				delivery.MaxAttempts = c.maxAttempts
+				repo.EXPECT().ClaimPending(gomock.Any(), gomock.Any()).
+					Return([]dto.ClaimPendingResult{delivery}, nil)
 
-	t.Run("non-2xx marks delivery as failed and pushes next retry back", func(t *testing.T) {
-		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusInternalServerError)
-		}))
-		defer srv.Close()
+				var got dto.UpdateDeliveryStatusCommand
+				repo.EXPECT().UpdateStatus(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, cmd dto.UpdateDeliveryStatusCommand) error {
+						got = cmd
+						return nil
+					})
 
-		svc, repo := newTestService(t, testConfig())
-		repo.EXPECT().ClaimPending(gomock.Any(), gomock.Any()).
-			Return([]dto.ClaimPendingResult{newDelivery(srv.URL)}, nil)
+				svc.processBatch(context.Background())
 
-		var got dto.UpdateDeliveryStatusCommand
-		repo.EXPECT().UpdateStatus(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, cmd dto.UpdateDeliveryStatusCommand) error {
-				got = cmd
-				return nil
+				require.Equal(t, c.wantStatus, got.Status)
+				require.Equal(t, c.wantAttempts, got.Attempts)
+				require.True(t, got.NextRetryAt.After(fixedTime))
 			})
-
-		svc.processBatch(context.Background())
-
-		require.Equal(t, domain.StatusFailed, got.Status)
-		require.Equal(t, 1, got.Attempts)
-		require.True(t, got.NextRetryAt.After(fixedTime))
+		}
 	})
 
 	t.Run("transport error leaves delivery untouched", func(t *testing.T) {

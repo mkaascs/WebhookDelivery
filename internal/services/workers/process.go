@@ -42,44 +42,30 @@ func (s *Service) processBatch(ctx context.Context) {
 			continue
 		}
 
+		status := domain.StatusPending
 		if isSuccessCode(code) {
 			successCount++
-			s.handleSuccessRequest(ctx, delivery)
-			continue
+			status = domain.StatusDelivered
+		} else if delivery.Attempts >= delivery.MaxAttempts {
+			failedCount++
+			status = domain.StatusFailed
 		}
 
-		failedCount++
-		s.handleFailedRequest(ctx, delivery)
+		err = s.deliveryRepo.UpdateStatus(ctx, dto.UpdateDeliveryStatusCommand{
+			Status:      status,
+			Attempts:    delivery.Attempts,
+			NextRetryAt: delivery.NextRetryAt.Add(s.backoff(delivery.Attempts)),
+		})
+
+		if err != nil {
+			s.log.Warn("failed to update status", sloglib.Error(err))
+		}
 	}
 
 	log.Info("deliveries batch was processed",
 		slog.Int("total", len(deliveries)),
 		slog.Int("success", successCount),
 		slog.Int("failed", failedCount))
-}
-
-func (s *Service) handleSuccessRequest(ctx context.Context, successDelivery dto.ClaimPendingResult) {
-	err := s.deliveryRepo.UpdateStatus(ctx, dto.UpdateDeliveryStatusCommand{
-		Status:      domain.StatusDelivered,
-		Attempts:    successDelivery.Attempts,
-		NextRetryAt: successDelivery.NextRetryAt,
-	})
-
-	if err != nil {
-		s.log.Warn("failed to update status", sloglib.Error(err))
-	}
-}
-
-func (s *Service) handleFailedRequest(ctx context.Context, failedDelivery dto.ClaimPendingResult) {
-	err := s.deliveryRepo.UpdateStatus(ctx, dto.UpdateDeliveryStatusCommand{
-		Status:      domain.StatusFailed,
-		Attempts:    failedDelivery.Attempts,
-		NextRetryAt: failedDelivery.NextRetryAt.Add(s.backoff(failedDelivery.Attempts)),
-	})
-
-	if err != nil {
-		s.log.Warn("failed to update status", sloglib.Error(err))
-	}
 }
 
 func (s *Service) backoff(attempts int) time.Duration {
