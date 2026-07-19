@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"sync"
+	"time"
 	"webhook-delivery/internal/config"
 	"webhook-delivery/internal/domain/dto"
 )
@@ -23,6 +24,7 @@ type Service struct {
 
 	wg     sync.WaitGroup
 	notify chan struct{}
+	ticker *time.Ticker
 }
 
 func NewService(repo DeliveryRepo, log *slog.Logger, cfg config.WorkersConfig) *Service {
@@ -37,6 +39,7 @@ func NewService(repo DeliveryRepo, log *slog.Logger, cfg config.WorkersConfig) *
 		ctx:          ctx,
 		cancel:       cancel,
 		wg:           sync.WaitGroup{},
+		ticker:       time.NewTicker(cfg.TickerDuration),
 	}
 }
 
@@ -49,13 +52,16 @@ func (s *Service) Run() {
 		go func() {
 			defer s.wg.Done()
 
-			select {
-			case <-s.ctx.Done():
-				return
-			case <-s.notify:
-			}
+			for {
+				select {
+				case <-s.ctx.Done():
+					return
+				case <-s.notify:
+				case <-s.ticker.C:
+				}
 
-			s.processBatch(s.ctx)
+				s.processBatch(s.ctx)
+			}
 		}()
 	}
 

@@ -16,5 +16,6 @@ workers:
   max_goroutines: 5
   batch_size: 10
   max_attempts: 5
+  ticker_duration: 30s
   base_backoff: 10s
   max_backoff: 1h
