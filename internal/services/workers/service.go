@@ -72,6 +72,7 @@ func (s *Service) Shutdown() {
 	const fn = "services.workers.Service.Shutdown"
 	log := s.log.With(slog.String("fn", fn))
 
+	s.ticker.Stop()
 	s.cancel()
 	s.wg.Wait()
 
