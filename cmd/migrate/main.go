@@ -20,7 +20,7 @@ func main() {
 
 	cmd := os.Args[1]
 	connectionString := fmt.Sprintf("postgres://%s:%s@%s/hookrelay?sslmode=disable",
-		cfg.User, cfg.Password, cfg.DbConfig.Addr)
+		cfg.User, cfg.Password, cfg.Addr)
 
 	migration, err := migrate.New("file://migrations", connectionString)
 	if err != nil {
