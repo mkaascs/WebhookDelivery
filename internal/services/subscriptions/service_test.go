@@ -42,6 +42,30 @@ func Test_Service_Add(t *testing.T) {
 	})
 }
 
+func Test_Service_GetAll(t *testing.T) {
+	const endpointID = "ep-1"
+	subs := []domain.Subscription{{ID: "sub-1", EndpointID: endpointID, EventType: "order.created"}}
+	want := []dto.GetSubscriptionResult{{ID: "sub-1", EndpointID: endpointID, EventType: "order.created"}}
+
+	t.Run("success", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		repo.EXPECT().GetAll(gomock.Any(), endpointID).Return(subs, nil)
+
+		got, err := svc.GetAll(context.Background(), endpointID)
+		require.NoError(t, err)
+		require.Equal(t, want, got)
+	})
+
+	t.Run("error is wrapped", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		repo.EXPECT().GetAll(gomock.Any(), endpointID).Return(nil, domain.ErrEndpointNotFound)
+
+		got, err := svc.GetAll(context.Background(), endpointID)
+		require.Nil(t, got)
+		require.ErrorIs(t, err, domain.ErrEndpointNotFound)
+	})
+}
+
 func Test_Service_Delete(t *testing.T) {
 	const id = "sub-1"
 

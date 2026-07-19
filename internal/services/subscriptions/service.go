@@ -10,6 +10,7 @@ import (
 type SubscriptionRepo interface {
 	Add(ctx context.Context, command dto.AddSubscriptionCommand) ([]domain.Subscription, error)
 	Delete(ctx context.Context, id string) error
+	GetAll(ctx context.Context, endpointID string) ([]domain.Subscription, error)
 }
 
 type Service struct {

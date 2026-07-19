@@ -14,7 +14,7 @@ import (
 
 type GetAllResponse struct {
 	utils.Response
-	Subscriptions []SubscriptionInfo
+	Subscriptions []SubscriptionInfo `json:"subscriptions"`
 }
 
 type SubscriptionGetter interface {

@@ -64,3 +64,18 @@ func (mr *MockSubscriptionRepoMockRecorder) Delete(ctx, id interface{}) *gomock.
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockSubscriptionRepo)(nil).Delete), ctx, id)
 }
+
+// GetAll mocks base method.
+func (m *MockSubscriptionRepo) GetAll(ctx context.Context, endpointID string) ([]domain.Subscription, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAll", ctx, endpointID)
+	ret0, _ := ret[0].([]domain.Subscription)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAll indicates an expected call of GetAll.
+func (mr *MockSubscriptionRepoMockRecorder) GetAll(ctx, endpointID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockSubscriptionRepo)(nil).GetAll), ctx, endpointID)
+}
