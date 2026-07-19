@@ -29,11 +29,12 @@ func newTestService(t *testing.T, cfg config.WorkersConfig) (*Service, *MockDeli
 
 func testConfig() config.WorkersConfig {
 	return config.WorkersConfig{
-		MaxGoroutines: 1,
-		BatchSize:     10,
-		MaxAttempts:   5,
-		BaseBackoff:   time.Second,
-		MaxBackoff:    time.Hour,
+		MaxGoroutines:  1,
+		BatchSize:      10,
+		MaxAttempts:    5,
+		BaseBackoff:    time.Second,
+		MaxBackoff:     time.Hour,
+		TickerDuration: time.Minute,
 	}
 }
 
