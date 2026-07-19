@@ -58,7 +58,7 @@ func TryRenderEndpointsError(w http.ResponseWriter, req *http.Request, err error
 		return true
 	}
 
-	if errors.Is(err, domain.ErrEventNotFount) {
+	if errors.Is(err, domain.ErrEventNotFound) {
 		RenderError(w, req, http.StatusNotFound, "event with this id not found")
 		return true
 	}

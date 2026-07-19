@@ -74,10 +74,10 @@ func Test_Service_Get(t *testing.T) {
 
 	t.Run("error is wrapped", func(t *testing.T) {
 		svc, eventRepo, _, _ := newTestService(t)
-		eventRepo.EXPECT().GetByID(gomock.Any(), id).Return(nil, domain.ErrEventNotFount)
+		eventRepo.EXPECT().GetByID(gomock.Any(), id).Return(nil, domain.ErrEventNotFound)
 
 		got, err := svc.Get(context.Background(), id)
 		require.Nil(t, got)
-		require.ErrorIs(t, err, domain.ErrEventNotFount)
+		require.ErrorIs(t, err, domain.ErrEventNotFound)
 	})
 }

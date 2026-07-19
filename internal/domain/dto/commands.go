@@ -35,6 +35,7 @@ type PublishEventCommand struct {
 }
 
 type UpdateDeliveryStatusCommand struct {
+	ID          string
 	Status      domain.DeliveryStatus
 	Attempts    int
 	NextRetryAt time.Time

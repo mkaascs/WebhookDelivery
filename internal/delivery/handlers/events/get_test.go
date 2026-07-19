@@ -41,7 +41,7 @@ func Test_Get(t *testing.T) {
 			name:  "event not found",
 			query: "id=ev-404",
 			setupMock: func(m *MockEventGetter) {
-				m.EXPECT().Get(gomock.Any(), "ev-404").Return(nil, domain.ErrEventNotFount)
+				m.EXPECT().Get(gomock.Any(), "ev-404").Return(nil, domain.ErrEventNotFound)
 			},
 			wantStatus: http.StatusNotFound,
 		},

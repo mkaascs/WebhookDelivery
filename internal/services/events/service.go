@@ -17,7 +17,7 @@ type EventRepo interface {
 }
 
 type DeliveryRepo interface {
-	CreateForEvent(ctx context.Context, eventID string, eventType string) (int, error)
+	CreateForEvent(ctx context.Context, eventID, eventType string) (int, error)
 }
 
 type Service struct {

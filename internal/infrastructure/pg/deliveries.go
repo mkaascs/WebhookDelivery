@@ -1,1 +1,131 @@
 package pg
+
+import (
+	"context"
+	"fmt"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"log/slog"
+	"webhook-delivery/internal/domain"
+	"webhook-delivery/internal/domain/dto"
+	"webhook-delivery/internal/lib/uuid"
+)
+
+type Deliveries struct {
+	maxAttempts int
+	pool        *pgxpool.Pool
+	log         *slog.Logger
+}
+
+func NewDeliveries(pool *pgxpool.Pool, log *slog.Logger, maxAttempts int) *Deliveries {
+	return &Deliveries{pool: pool, log: log, maxAttempts: maxAttempts}
+}
+
+func (d *Deliveries) CreateForEvent(ctx context.Context, eventID, eventType string) (int, error) {
+	const fn = "infrastructure.pg.Deliveries.CreateForEvent"
+
+	rows, err := d.pool.Query(ctx, `
+		SELECT endpoint_id
+		FROM subscriptions
+		JOIN endpoints ON endpoints.id = endpoint_id
+		WHERE event_type = $1 AND endpoints.is_active`, eventType)
+
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	defer rows.Close()
+
+	var deliveryIDs, endpointIDs []string
+	for index := 0; rows.Next(); index++ {
+		var endpointID string
+		if err := rows.Scan(&endpointID); err != nil {
+			return 0, fmt.Errorf("%s: %w", fn, err)
+		}
+
+		endpointIDs = append(endpointIDs, endpointID)
+		deliveryIDs = append(deliveryIDs, uuid.NewDelivery())
+	}
+
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	if len(endpointIDs) == 0 {
+		return 0, nil
+	}
+
+	res, err := d.pool.Exec(ctx, `
+		INSERT INTO deliveries (id, endpoint_id, event_id, max_attempts)
+		SELECT d_id, e_id, $3, $4
+		FROM unnest($1::text[], $2::text[]) AS t(d_id, e_id)
+		ON CONFLICT (endpoint_id, event_id) DO NOTHING`,
+		deliveryIDs, endpointIDs, eventID, d.maxAttempts)
+
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	return int(res.RowsAffected()), nil
+}
+
+func (d *Deliveries) ClaimPending(ctx context.Context, batchSize int) ([]dto.ClaimPendingResult, error) {
+	const fn = "infrastructure.pg.Deliveries.ClaimPending"
+
+	rows, err := d.pool.Query(ctx, `
+		UPDATE deliveries
+		SET status = 'processing'
+		FROM events, endpoints
+		WHERE events.id = event_id
+		    AND endpoints.id = endpoint_id,
+		    AND id IN (
+		    	SELECT id 
+		    	FROM deliveries
+		    	WHERE status = 'pending' AND next_retry_at <= now()
+		    	ORDER BY next_retry_at
+		    	LIMIT $1
+		    	FOR UPDATE SKIP LOCKED
+		    )
+		RETURNING endpoints.url, endpoints.secret, events.payload, attempts, max_attempts, next_retry_at`,
+		batchSize)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	defer rows.Close()
+
+	var results []dto.ClaimPendingResult
+	for rows.Next() {
+		var result dto.ClaimPendingResult
+		if err := rows.Scan(&result.URL, &result.Secret, &result.Payload, &result.Attempts, &result.MaxAttempts, &result.NextRetryAt); err != nil {
+			return nil, fmt.Errorf("%s: %w", fn, err)
+		}
+
+		results = append(results, result)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	return results, nil
+}
+
+func (d *Deliveries) UpdateStatus(ctx context.Context, command dto.UpdateDeliveryStatusCommand) error {
+	const fn = "infrastructure.pg.Deliveries.UpdateStatus"
+
+	res, err := d.pool.Exec(ctx,
+		`UPDATE deliveries
+			SET status = $1, attempts = $2, next_retry_at = $3
+			WHERE id = $4`, command.Status, command.Attempts, command.NextRetryAt, command.ID)
+
+	if err != nil {
+		return fmt.Errorf("%s: %w", fn, err)
+	}
+
+	if res.RowsAffected() == 0 {
+		return domain.ErrDeliveryNotFound
+	}
+
+	return nil
+}

@@ -56,7 +56,7 @@ func (e *Events) GetByID(ctx context.Context, id string) (*domain.Event, error) 
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domain.ErrEventNotFount
+			return nil, domain.ErrEventNotFound
 		}
 
 		return nil, fmt.Errorf("%s: %w", fn, err)
