@@ -7,12 +7,12 @@ import (
 	"time"
 )
 
-func NewLogger(log *slog.Logger) func(http.Handler) http.HandlerFunc {
-	return func(next http.Handler) http.HandlerFunc {
+func NewLogger(log *slog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
 		log = log.With(slog.String("component", "middleware/logging"))
 		log.Info("logger middleware is enabled")
 
-		return func(w http.ResponseWriter, req *http.Request) {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			entry := log.With(slog.String("method", req.Method),
 				slog.String("path", req.URL.Path),
 				slog.String("remote", req.RemoteAddr),
@@ -29,6 +29,6 @@ func NewLogger(log *slog.Logger) func(http.Handler) http.HandlerFunc {
 			}()
 
 			next.ServeHTTP(wrw, req)
-		}
+		})
 	}
 }

@@ -21,11 +21,11 @@ type paginationCtxKey int
 
 const paginationParamsKey paginationCtxKey = 0
 
-func NewUrlPaginationParser(log *slog.Logger) func(http.Handler) http.HandlerFunc {
-	return func(next http.Handler) http.HandlerFunc {
+func NewUrlPaginationParser(log *slog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
 		log = log.With(slog.String("component", "middleware/pagination"))
 
-		return func(w http.ResponseWriter, req *http.Request) {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			page, err := strconv.Atoi(req.URL.Query().Get("page"))
 			if err != nil || page < 1 {
 				page = 1
@@ -45,7 +45,7 @@ func NewUrlPaginationParser(log *slog.Logger) func(http.Handler) http.HandlerFun
 
 			ctx := context.WithValue(req.Context(), paginationParamsKey, params)
 			next.ServeHTTP(w, req.WithContext(ctx))
-		}
+		})
 	}
 }
 

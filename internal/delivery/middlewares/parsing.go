@@ -15,8 +15,8 @@ const parsedBodyKey parsedBodyCtxKey = 0
 
 const maxBytes int64 = 2 << 20
 
-func NewBodyParser[T any](log *slog.Logger) func(http.Handler) http.HandlerFunc {
-	return func(next http.Handler) http.HandlerFunc {
+func NewBodyParser[T any](log *slog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
 		log = log.With(slog.String("component", "middleware/parsing"))
 
 		methodsToSkip := map[string]bool{
@@ -26,7 +26,7 @@ func NewBodyParser[T any](log *slog.Logger) func(http.Handler) http.HandlerFunc 
 			http.MethodDelete:  true,
 		}
 
-		return func(w http.ResponseWriter, req *http.Request) {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			req.Body = http.MaxBytesReader(w, req.Body, maxBytes)
 
 			if methodsToSkip[req.Method] {
@@ -49,7 +49,7 @@ func NewBodyParser[T any](log *slog.Logger) func(http.Handler) http.HandlerFunc 
 
 			ctx := context.WithValue(req.Context(), parsedBodyKey, payload)
 			next.ServeHTTP(w, req.WithContext(ctx))
-		}
+		})
 	}
 }
 
