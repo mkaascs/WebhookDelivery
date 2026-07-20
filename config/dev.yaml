@@ -1,15 +1,15 @@
-env: "local" #prod, dev
+env: "dev" #prod, dev
 http_server:
   port: 8080
   write_timeout: 5s
   read_timeout: 10s
 db:
-  addr: "localhost:5432"
+  addr: "postgres:5432"
   connection_timeout: 5s
 workers:
   max_goroutines: 5
-  batch_size: 5
-  max_attempts: 5
+  batch_size: 10
+  max_attempts: 8
   ticker_duration: 10s
   base_backoff: 10s
   max_backoff: 1h
