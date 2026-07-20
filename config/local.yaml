@@ -11,5 +11,6 @@ workers:
   batch_size: 5
   max_attempts: 5
   ticker_duration: 10s
+  timeout: 10s
   base_backoff: 10s
   max_backoff: 1h

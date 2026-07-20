@@ -35,10 +35,12 @@ type PublishEventCommand struct {
 }
 
 type UpdateDeliveryStatusCommand struct {
-	ID          string
-	Status      domain.DeliveryStatus
-	Attempts    int
-	NextRetryAt time.Time
+	ID               string
+	Status           domain.DeliveryStatus
+	Attempts         int
+	NextRetryAt      time.Time
+	LastError        *string
+	LastResponseCode *int
 }
 
 type AddEndpointCommand struct {

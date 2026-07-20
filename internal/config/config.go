@@ -43,6 +43,7 @@ type WorkersConfig struct {
 	BaseBackoff    time.Duration `yaml:"base_backoff" default:"10s"`
 	MaxBackoff     time.Duration `yaml:"max_backoff" default:"1h"`
 	TickerDuration time.Duration `yaml:"ticker_duration" default:"30s"`
+	Timeout        time.Duration `yaml:"timeout" default:"10s"`
 }
 
 func MustLoad() *Config {

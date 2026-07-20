@@ -117,8 +117,9 @@ func (d *Deliveries) UpdateStatus(ctx context.Context, command dto.UpdateDeliver
 
 	res, err := d.pool.Exec(ctx,
 		`UPDATE deliveries
-			SET status = $1, attempts = $2, next_retry_at = $3
-			WHERE id = $4`, command.Status, command.Attempts, command.NextRetryAt, command.ID)
+			SET status = $1, attempts = $2, next_retry_at = $3, last_error = $5, last_response_code = $6
+			WHERE id = $4`,
+		command.Status, command.Attempts, command.NextRetryAt, command.ID, command.LastError, command.LastResponseCode)
 
 	if err != nil {
 		return fmt.Errorf("%s: %w", fn, err)

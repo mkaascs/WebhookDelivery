@@ -36,11 +36,6 @@ func (s *Service) processBatch(ctx context.Context) {
 	successCount, failedCount := 0, 0
 	for _, delivery := range deliveries {
 		delivery.Attempts++
-		code, err := sendPostRequest(delivery.URL, delivery.Payload, delivery.Secret)
-		if err != nil {
-			log.Warn("failed to send post request", sloglib.Error(err), slog.String("url", delivery.URL))
-		}
-
 		cmd := dto.UpdateDeliveryStatusCommand{
 			ID:          delivery.ID,
 			Status:      domain.StatusPending,
@@ -48,15 +43,28 @@ func (s *Service) processBatch(ctx context.Context) {
 			NextRetryAt: delivery.NextRetryAt,
 		}
 
+		code, msg, err := s.sendPostRequest(ctx, delivery.URL, delivery.Payload, delivery.Secret)
+		if err != nil {
+			log.Warn("failed to send post request", sloglib.Error(err), slog.String("url", delivery.URL))
+		} else {
+			cmd.LastResponseCode = &code
+		}
+
 		if isSuccessCode(code) {
 			successCount++
 			cmd.Status = domain.StatusDelivered
-		} else if delivery.Attempts >= delivery.MaxAttempts {
-			failedCount++
-			cmd.Status = domain.StatusFailed
+			if err = s.deliveryRepo.UpdateStatus(ctx, cmd); err != nil {
+				s.log.Warn("failed to update status", sloglib.Error(err))
+			}
+
+			continue
 		}
 
-		if cmd.Status == domain.StatusPending {
+		cmd.LastError = &msg
+		if delivery.Attempts >= delivery.MaxAttempts {
+			failedCount++
+			cmd.Status = domain.StatusFailed
+		} else {
 			cmd.NextRetryAt = time.Now().Add(s.backoff(delivery.Attempts))
 		}
 

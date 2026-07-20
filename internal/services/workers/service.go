@@ -3,6 +3,7 @@ package workers
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"sync"
 	"time"
 	"webhook-delivery/internal/config"
@@ -18,6 +19,7 @@ type Service struct {
 	log          *slog.Logger
 	cfg          config.WorkersConfig
 	deliveryRepo DeliveryRepo
+	httpClient   *http.Client
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -30,11 +32,13 @@ type Service struct {
 func NewService(repo DeliveryRepo, log *slog.Logger, cfg config.WorkersConfig) *Service {
 	notify := make(chan struct{}, 1)
 	ctx, cancel := context.WithCancel(context.Background())
+	httpClient := &http.Client{Timeout: cfg.Timeout}
 
 	return &Service{
 		cfg:          cfg,
 		log:          log,
 		deliveryRepo: repo,
+		httpClient:   httpClient,
 		notify:       notify,
 		ctx:          ctx,
 		cancel:       cancel,

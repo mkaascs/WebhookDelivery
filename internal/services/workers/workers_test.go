@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -35,6 +36,7 @@ func testConfig() config.WorkersConfig {
 		BaseBackoff:    time.Second,
 		MaxBackoff:     time.Hour,
 		TickerDuration: time.Minute,
+		Timeout:        5 * time.Second,
 	}
 }
 
@@ -72,9 +74,11 @@ func Test_sendPostRequest(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		code, err := sendPostRequest(srv.URL, payload, secret)
+		svc, _ := newTestService(t, testConfig())
+		code, desc, err := svc.sendPostRequest(context.Background(), srv.URL, payload, secret)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, code)
+		require.Equal(t, "HTTP 200", desc)
 
 		mac := hmac.New(sha256.New, secret)
 		mac.Write(payload)
@@ -89,9 +93,11 @@ func Test_sendPostRequest(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		code, err := sendPostRequest(srv.URL, payload, secret)
+		svc, _ := newTestService(t, testConfig())
+		code, desc, err := svc.sendPostRequest(context.Background(), srv.URL, payload, secret)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusInternalServerError, code)
+		require.Equal(t, "HTTP 500", desc)
 	})
 
 	t.Run("transport error returns error and zero code", func(t *testing.T) {
@@ -99,9 +105,11 @@ func Test_sendPostRequest(t *testing.T) {
 		url := srv.URL
 		srv.Close()
 
-		code, err := sendPostRequest(url, payload, secret)
+		svc, _ := newTestService(t, testConfig())
+		code, desc, err := svc.sendPostRequest(context.Background(), url, payload, secret)
 		require.Error(t, err)
 		require.Zero(t, code)
+		require.Equal(t, err.Error(), desc)
 	})
 }
 
@@ -176,6 +184,18 @@ func Test_processBatch(t *testing.T) {
 				require.Equal(t, delivery.ID, got.ID)
 				require.Equal(t, c.wantStatus, got.Status)
 				require.Equal(t, c.wantAttempts, got.Attempts)
+
+				require.NotNil(t, got.LastResponseCode)
+				require.Equal(t, c.serverCode, *got.LastResponseCode)
+
+				if c.wantStatus == domain.StatusDelivered {
+					require.Nil(t, got.LastError)
+					require.Equal(t, fixedTime, got.NextRetryAt)
+					return
+				}
+
+				require.NotNil(t, got.LastError)
+				require.Equal(t, fmt.Sprintf("HTTP %d", c.serverCode), *got.LastError)
 				if c.wantRescheduled {
 					require.True(t, got.NextRetryAt.After(before))
 				} else {
@@ -207,5 +227,7 @@ func Test_processBatch(t *testing.T) {
 		require.Equal(t, domain.StatusPending, got.Status)
 		require.Equal(t, 1, got.Attempts)
 		require.True(t, got.NextRetryAt.After(before))
+		require.Nil(t, got.LastResponseCode)
+		require.NotNil(t, got.LastError)
 	})
 }
