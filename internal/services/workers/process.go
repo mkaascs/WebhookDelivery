@@ -38,8 +38,7 @@ func (s *Service) processBatch(ctx context.Context) {
 		delivery.Attempts++
 		code, err := sendPostRequest(delivery.URL, delivery.Payload, delivery.Secret)
 		if err != nil {
-			log.Warn("failed to send post request", sloglib.Error(err), slog.String("url", delivery.URL))
-			continue
+			log.Info("failed to send post request", sloglib.Error(err), slog.String("url", delivery.URL))
 		}
 
 		status := domain.StatusPending
