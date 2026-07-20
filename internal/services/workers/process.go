@@ -38,26 +38,29 @@ func (s *Service) processBatch(ctx context.Context) {
 		delivery.Attempts++
 		code, err := sendPostRequest(delivery.URL, delivery.Payload, delivery.Secret)
 		if err != nil {
-			log.Info("failed to send post request", sloglib.Error(err), slog.String("url", delivery.URL))
+			log.Warn("failed to send post request", sloglib.Error(err), slog.String("url", delivery.URL))
 		}
 
-		status := domain.StatusPending
+		cmd := dto.UpdateDeliveryStatusCommand{
+			ID:          delivery.ID,
+			Status:      domain.StatusPending,
+			Attempts:    delivery.Attempts,
+			NextRetryAt: delivery.NextRetryAt,
+		}
+
 		if isSuccessCode(code) {
 			successCount++
-			status = domain.StatusDelivered
+			cmd.Status = domain.StatusDelivered
 		} else if delivery.Attempts >= delivery.MaxAttempts {
 			failedCount++
-			status = domain.StatusFailed
+			cmd.Status = domain.StatusFailed
 		}
 
-		err = s.deliveryRepo.UpdateStatus(ctx, dto.UpdateDeliveryStatusCommand{
-			ID:          delivery.ID,
-			Status:      status,
-			Attempts:    delivery.Attempts,
-			NextRetryAt: delivery.NextRetryAt.Add(s.backoff(delivery.Attempts)),
-		})
+		if cmd.Status == domain.StatusPending {
+			cmd.NextRetryAt = time.Now().Add(s.backoff(delivery.Attempts))
+		}
 
-		if err != nil {
+		if err = s.deliveryRepo.UpdateStatus(ctx, cmd); err != nil {
 			s.log.Warn("failed to update status", sloglib.Error(err))
 		}
 	}
@@ -69,7 +72,7 @@ func (s *Service) processBatch(ctx context.Context) {
 }
 
 func (s *Service) backoff(attempts int) time.Duration {
-	multiplier := 2 << (attempts - 1)
+	multiplier := 1 << (attempts - 1)
 	delay := float64(s.cfg.BaseBackoff) * float64(multiplier)
 	if delay > float64(s.cfg.MaxBackoff) {
 		delay = float64(s.cfg.MaxBackoff)
