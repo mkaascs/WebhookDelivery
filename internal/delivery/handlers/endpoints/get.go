@@ -63,7 +63,7 @@ func Get(getter EndpointGetter, log *slog.Logger) http.HandlerFunc {
 			EndpointInfo: EndpointInfo{
 				ID:          id,
 				URL:         result.URL,
-				EventTypes:  result.EventTypes,
+				EventTypes:  utils.GetDefaultIfNull(result.EventTypes),
 				Description: ptr.Defer(result.Description),
 				IsActive:    result.IsActive,
 				CreatedAt:   result.CreatedAt,

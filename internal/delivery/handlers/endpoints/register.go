@@ -74,7 +74,7 @@ func Register(registrar EndpointRegistrar, log *slog.Logger) http.HandlerFunc {
 		render.JSON(w, req, RegisterResponse{
 			ID:         result.ID,
 			URL:        payload.URL,
-			EventTypes: payload.EventTypes,
+			EventTypes: utils.GetDefaultIfNull(payload.EventTypes),
 			Secret:     result.Secret,
 			IsActive:   result.IsActive,
 			CreatedAt:  result.CreatedAt,

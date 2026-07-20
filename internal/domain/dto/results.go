@@ -41,6 +41,7 @@ type GetEventResult struct {
 }
 
 type ClaimPendingResult struct {
+	ID          string
 	URL         string
 	Secret      []byte
 	Payload     json.RawMessage

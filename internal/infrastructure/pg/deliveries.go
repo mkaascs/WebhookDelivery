@@ -72,12 +72,12 @@ func (d *Deliveries) ClaimPending(ctx context.Context, batchSize int) ([]dto.Cla
 	const fn = "infrastructure.pg.Deliveries.ClaimPending"
 
 	rows, err := d.pool.Query(ctx, `
-		UPDATE deliveries
+		UPDATE deliveries d
 		SET status = 'processing'
-		FROM events, endpoints
-		WHERE events.id = event_id
-		    AND endpoints.id = endpoint_id,
-		    AND id IN (
+		FROM ev events, e endpoints
+		WHERE ev.id = d.event_id
+		    AND e.id = d.endpoint_id
+		    AND d.id IN (
 		    	SELECT id 
 		    	FROM deliveries
 		    	WHERE status = 'pending' AND next_retry_at <= now()
@@ -85,7 +85,7 @@ func (d *Deliveries) ClaimPending(ctx context.Context, batchSize int) ([]dto.Cla
 		    	LIMIT $1
 		    	FOR UPDATE SKIP LOCKED
 		    )
-		RETURNING endpoints.url, endpoints.secret, events.payload, attempts, max_attempts, next_retry_at`,
+		RETURNING d.id, e.url, e.secret, ev.payload, attempts, max_attempts, next_retry_at`,
 		batchSize)
 
 	if err != nil {

@@ -60,7 +60,7 @@ func GetAll(getter AllEndpointsGetter, log *slog.Logger) http.HandlerFunc {
 			endpointsInfo = append(endpointsInfo, EndpointInfo{
 				ID:          info.ID,
 				URL:         info.URL,
-				EventTypes:  info.EventTypes,
+				EventTypes:  utils.GetDefaultIfNull(info.EventTypes),
 				Description: ptr.Defer(info.Description),
 				IsActive:    info.IsActive,
 				CreatedAt:   info.CreatedAt,
