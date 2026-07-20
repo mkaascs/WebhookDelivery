@@ -31,3 +31,8 @@ tasks:
     desc: "Migrate down DB"
     cmds:
       - go run ./cmd/migrate/main.go down
+  docs:swagger:
+    desc: "Generate swagger documentation"
+    cmds:
+      - swag fmt
+      - "swag init -g cmd/webhook-delivery/main.go -o ./docs"

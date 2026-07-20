@@ -2,14 +2,15 @@ package subscriptions
 
 import (
 	"context"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
-	"github.com/go-chi/render"
 	"log/slog"
 	"net/http"
 	"webhook-delivery/internal/delivery/utils"
 	"webhook-delivery/internal/domain/dto"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
+
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/render"
 )
 
 type GetAllResponse struct {
@@ -21,6 +22,17 @@ type SubscriptionGetter interface {
 	GetAll(ctx context.Context, endpointID string) ([]dto.GetSubscriptionResult, error)
 }
 
+// GetAll godoc
+//
+//	@Summary	List an endpoint's subscriptions
+//	@Tags		subscriptions
+//	@Produce	json
+//	@Param		id	path		string	true	"Endpoint ID"
+//	@Success	200	{object}	GetAllResponse
+//	@Failure	400	{object}	utils.Response	"id is not provided"
+//	@Failure	404	{object}	utils.Response	"endpoint not found"
+//	@Failure	500	{object}	utils.Response
+//	@Router		/endpoints/{id}/subscriptions [get]
 func GetAll(getter SubscriptionGetter, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		const fn = "handlers.subscriptions.GetAll"

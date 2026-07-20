@@ -2,18 +2,30 @@ package endpoints
 
 import (
 	"context"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	"log/slog"
 	"net/http"
 	"webhook-delivery/internal/delivery/utils"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
+
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 )
 
 type EndpointDeleter interface {
 	Delete(ctx context.Context, id string) error
 }
 
+// Delete godoc
+//
+//	@Summary	Delete an endpoint
+//	@Tags		endpoints
+//	@Produce	json
+//	@Param		id	path	string	true	"Endpoint ID"
+//	@Success	204	"No Content"
+//	@Failure	400	{object}	utils.Response	"id is not provided"
+//	@Failure	404	{object}	utils.Response	"endpoint not found"
+//	@Failure	500	{object}	utils.Response
+//	@Router		/endpoints/{id} [delete]
 func Delete(deleter EndpointDeleter, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		const fn = "handlers.endpoints.Delete"

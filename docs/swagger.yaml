@@ -1,0 +1,592 @@
+definitions:
+  endpoints.EndpointInfo:
+    properties:
+      created_at:
+        example: "2026-07-01T12:00:00Z"
+        type: string
+      description:
+        example: Billing webhook
+        type: string
+      event_types:
+        example:
+        - order.created
+        items:
+          type: string
+        type: array
+      id:
+        example: ep_1a2b3c
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      url:
+        example: https://example.com/webhooks
+        type: string
+    type: object
+  endpoints.GetAllResponse:
+    properties:
+      endpoints:
+        items:
+          $ref: '#/definitions/endpoints.EndpointInfo'
+        type: array
+      errors:
+        description: Error messages, present only on failure responses
+        example:
+        - invalid url
+        items:
+          type: string
+        type: array
+      limit:
+        description: Page size
+        example: 10
+        type: integer
+      page:
+        description: Current page (from 1)
+        example: 1
+        type: integer
+      total:
+        description: Total number of endpoints
+        example: 42
+        type: integer
+    type: object
+  endpoints.GetResponse:
+    properties:
+      created_at:
+        example: "2026-07-01T12:00:00Z"
+        type: string
+      description:
+        example: Billing webhook
+        type: string
+      errors:
+        description: Error messages, present only on failure responses
+        example:
+        - invalid url
+        items:
+          type: string
+        type: array
+      event_types:
+        example:
+        - order.created
+        items:
+          type: string
+        type: array
+      id:
+        example: ep_1a2b3c
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      url:
+        example: https://example.com/webhooks
+        type: string
+    type: object
+  endpoints.RegisterRequest:
+    properties:
+      description:
+        description: Optional human-readable description
+        example: Billing webhook
+        type: string
+      event_types:
+        description: Event types to subscribe to on creation
+        example:
+        - order.created
+        items:
+          type: string
+        type: array
+      url:
+        description: Receiver URL (http/https, must not be private)
+        example: https://example.com/webhooks
+        type: string
+    required:
+    - url
+    type: object
+  endpoints.RegisterResponse:
+    properties:
+      created_at:
+        description: Creation timestamp
+        example: "2026-07-01T12:00:00Z"
+        type: string
+      errors:
+        description: Error messages, present only on failure responses
+        example:
+        - invalid url
+        items:
+          type: string
+        type: array
+      event_types:
+        description: Subscribed event types
+        example:
+        - order.created
+        items:
+          type: string
+        type: array
+      id:
+        description: Generated endpoint ID
+        example: ep_1a2b3c
+        type: string
+      is_active:
+        description: Whether the endpoint is active
+        example: true
+        type: boolean
+      secret:
+        description: Signing secret (returned once, on creation)
+        example: whsec_3f9a1c2e8d
+        type: string
+      url:
+        description: Receiver URL
+        example: https://example.com/webhooks
+        type: string
+    type: object
+  endpoints.UpdateRequest:
+    properties:
+      description:
+        description: New description
+        example: Billing webhook
+        type: string
+      is_active:
+        description: Pause or resume the endpoint
+        example: false
+        type: boolean
+      url:
+        description: New receiver URL (SSRF-validated if present)
+        example: https://example.com/webhooks
+        type: string
+    type: object
+  events.GetResponse:
+    properties:
+      created_at:
+        example: "2026-07-01T12:00:00Z"
+        type: string
+      id:
+        example: ev_1a2b3c
+        type: string
+      payload:
+        type: object
+      type:
+        example: order.created
+        type: string
+    type: object
+  events.PublishRequest:
+    properties:
+      payload:
+        description: Arbitrary JSON payload delivered to subscribers
+        type: object
+      type:
+        description: Event type
+        example: order.created
+        type: string
+    required:
+    - type
+    type: object
+  events.PublishResponse:
+    properties:
+      created_at:
+        example: "2026-07-01T12:00:00Z"
+        type: string
+      deliveries_created:
+        description: Number of pending deliveries created for subscribers
+        example: 3
+        type: integer
+      errors:
+        description: Error messages, present only on failure responses
+        example:
+        - invalid url
+        items:
+          type: string
+        type: array
+      id:
+        example: ev_1a2b3c
+        type: string
+      type:
+        example: order.created
+        type: string
+    type: object
+  subscriptions.GetAllResponse:
+    properties:
+      errors:
+        description: Error messages, present only on failure responses
+        example:
+        - invalid url
+        items:
+          type: string
+        type: array
+      subscriptions:
+        items:
+          $ref: '#/definitions/subscriptions.SubscriptionInfo'
+        type: array
+    type: object
+  subscriptions.SubscribeRequest:
+    properties:
+      event_types:
+        description: Event types to subscribe the endpoint to
+        example:
+        - order.created
+        items:
+          type: string
+        type: array
+    required:
+    - event_types
+    type: object
+  subscriptions.SubscribeResponse:
+    properties:
+      endpoint_id:
+        example: ep_1a2b3c
+        type: string
+      errors:
+        description: Error messages, present only on failure responses
+        example:
+        - invalid url
+        items:
+          type: string
+        type: array
+      subscriptions:
+        items:
+          $ref: '#/definitions/subscriptions.SubscriptionInfo'
+        type: array
+    type: object
+  subscriptions.SubscriptionInfo:
+    properties:
+      created_at:
+        example: "2026-07-01T12:00:00Z"
+        type: string
+      endpoint_id:
+        example: ep_1a2b3c
+        type: string
+      event_type:
+        example: order.created
+        type: string
+      id:
+        example: sub_1a2b3c
+        type: string
+    type: object
+  utils.Response:
+    properties:
+      errors:
+        description: Error messages, present only on failure responses
+        example:
+        - invalid url
+        items:
+          type: string
+        type: array
+    type: object
+info:
+  contact: {}
+  description: An open-source webhook delivery service in Go
+  title: Webhook Delivery
+  version: 1.0.0
+paths:
+  /endpoints:
+    get:
+      description: Returns a paginated list of endpoints. Invalid or missing pagination
+        params fall back to defaults.
+      parameters:
+      - description: Page number (from 1, default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Page size (10-100, default 10)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/endpoints.GetAllResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List endpoints
+      tags:
+      - endpoints
+    post:
+      consumes:
+      - application/json
+      description: Registers a receiver URL and returns its generated signing secret.
+        The URL is SSRF-validated (loopback / link-local / localhost are rejected).
+      parameters:
+      - description: Endpoint to register
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/endpoints.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/endpoints.RegisterResponse'
+        "400":
+          description: invalid url or malformed body
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Register a webhook endpoint
+      tags:
+      - endpoints
+  /endpoints/{id}:
+    delete:
+      parameters:
+      - description: Endpoint ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: id is not provided
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: endpoint not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Delete an endpoint
+      tags:
+      - endpoints
+    get:
+      parameters:
+      - description: Endpoint ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/endpoints.GetResponse'
+        "400":
+          description: id is not provided
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: endpoint not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get an endpoint by ID
+      tags:
+      - endpoints
+    patch:
+      consumes:
+      - application/json
+      description: Partially updates the URL, active state or description. An empty
+        body is treated as a no-op. If a URL is provided it is SSRF-validated.
+      parameters:
+      - description: Endpoint ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update (all optional)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/endpoints.UpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: id is not provided or invalid url
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: endpoint not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Update an endpoint
+      tags:
+      - endpoints
+  /endpoints/{id}/subscriptions:
+    get:
+      parameters:
+      - description: Endpoint ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/subscriptions.GetAllResponse'
+        "400":
+          description: id is not provided
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: endpoint not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List an endpoint's subscriptions
+      tags:
+      - subscriptions
+    post:
+      consumes:
+      - application/json
+      description: Adds subscriptions for the given event types. Idempotent — event
+        types the endpoint is already subscribed to are ignored.
+      parameters:
+      - description: Endpoint ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Event types to subscribe to
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/subscriptions.SubscribeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/subscriptions.SubscribeResponse'
+        "400":
+          description: id or event types not provided
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: endpoint not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "409":
+          description: subscription already exists
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Subscribe an endpoint to event types
+      tags:
+      - subscriptions
+  /events:
+    post:
+      consumes:
+      - application/json
+      description: Publishes an event and fans it out to subscribed endpoints, creating
+        a pending delivery for each. Returns immediately with the number of deliveries
+        created.
+      parameters:
+      - description: Event to publish
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/events.PublishRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/events.PublishResponse'
+        "400":
+          description: event type is empty or malformed body
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Publish an event
+      tags:
+      - events
+  /events/{id}:
+    get:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/events.GetResponse'
+        "400":
+          description: id is not provided
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: event not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get an event by ID
+      tags:
+      - events
+  /subscriptions/{id}:
+    delete:
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: id is not provided
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: subscription not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Delete a subscription
+      tags:
+      - subscriptions
+swagger: "2.0"

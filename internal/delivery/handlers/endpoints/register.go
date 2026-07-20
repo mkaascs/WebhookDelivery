@@ -2,8 +2,6 @@ package endpoints
 
 import (
 	"context"
-	"github.com/go-chi/chi/middleware"
-	"github.com/go-chi/render"
 	"log/slog"
 	"net/http"
 	"time"
@@ -11,28 +9,43 @@ import (
 	"webhook-delivery/internal/delivery/utils"
 	"webhook-delivery/internal/domain/dto"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
+
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/render"
 )
 
 type RegisterRequest struct {
-	URL         string   `json:"url" validate:"url,required"`
-	EventTypes  []string `json:"event_types"`
-	Description *string  `json:"description"`
+	URL         string   `json:"url" validate:"url,required" example:"https://example.com/webhooks"` // Receiver URL (http/https, must not be private)
+	EventTypes  []string `json:"event_types" example:"order.created"`                                // Event types to subscribe to on creation
+	Description *string  `json:"description" example:"Billing webhook"`                              // Optional human-readable description
 }
 
 type RegisterResponse struct {
 	utils.Response
-	ID         string    `json:"id"`
-	URL        string    `json:"url"`
-	EventTypes []string  `json:"event_types"`
-	Secret     string    `json:"secret"`
-	IsActive   bool      `json:"is_active"`
-	CreatedAt  time.Time `json:"created_at"`
+	ID         string    `json:"id" example:"ep_1a2b3c"`                     // Generated endpoint ID
+	URL        string    `json:"url" example:"https://example.com/webhooks"` // Receiver URL
+	EventTypes []string  `json:"event_types" example:"order.created"`        // Subscribed event types
+	Secret     string    `json:"secret" example:"whsec_3f9a1c2e8d"`          // Signing secret (returned once, on creation)
+	IsActive   bool      `json:"is_active" example:"true"`                   // Whether the endpoint is active
+	CreatedAt  time.Time `json:"created_at" example:"2026-07-01T12:00:00Z"`  // Creation timestamp
 }
 
 type EndpointRegistrar interface {
 	Register(ctx context.Context, command dto.RegisterEndpointCommand) (*dto.RegisterEndpointResult, error)
 }
 
+// Register godoc
+//
+//	@Summary		Register a webhook endpoint
+//	@Description	Registers a receiver URL and returns its generated signing secret. The URL is SSRF-validated (loopback / link-local / localhost are rejected).
+//	@Tags			endpoints
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		RegisterRequest	true	"Endpoint to register"
+//	@Success		200		{object}	RegisterResponse
+//	@Failure		400		{object}	utils.Response	"invalid url or malformed body"
+//	@Failure		500		{object}	utils.Response
+//	@Router			/endpoints [post]
 func Register(registrar EndpointRegistrar, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		const fn = "handlers.endpoints.Register"

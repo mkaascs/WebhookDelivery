@@ -2,9 +2,6 @@ package endpoints
 
 import (
 	"context"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
-	"github.com/go-chi/render"
 	"log/slog"
 	"net/http"
 	"time"
@@ -12,15 +9,19 @@ import (
 	"webhook-delivery/internal/domain/dto"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
 	"webhook-delivery/internal/lib/ptr"
+
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/render"
 )
 
 type EndpointInfo struct {
-	ID          string    `json:"id"`
-	URL         string    `json:"url"`
-	EventTypes  []string  `json:"event_types"`
-	Description string    `json:"description"`
-	IsActive    bool      `json:"is_active"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID          string    `json:"id" example:"ep_1a2b3c"`
+	URL         string    `json:"url" example:"https://example.com/webhooks"`
+	EventTypes  []string  `json:"event_types" example:"order.created"`
+	Description string    `json:"description" example:"Billing webhook"`
+	IsActive    bool      `json:"is_active" example:"true"`
+	CreatedAt   time.Time `json:"created_at" example:"2026-07-01T12:00:00Z"`
 }
 
 type GetResponse struct {
@@ -32,6 +33,17 @@ type EndpointGetter interface {
 	GetByID(ctx context.Context, id string) (*dto.GetEndpointResult, error)
 }
 
+// Get godoc
+//
+//	@Summary	Get an endpoint by ID
+//	@Tags		endpoints
+//	@Produce	json
+//	@Param		id	path		string	true	"Endpoint ID"
+//	@Success	200	{object}	GetResponse
+//	@Failure	400	{object}	utils.Response	"id is not provided"
+//	@Failure	404	{object}	utils.Response	"endpoint not found"
+//	@Failure	500	{object}	utils.Response
+//	@Router		/endpoints/{id} [get]
 func Get(getter EndpointGetter, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		const fn = "handlers.endpoints.Get"

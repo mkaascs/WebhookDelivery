@@ -2,11 +2,12 @@ package middlewares
 
 import (
 	"errors"
-	"github.com/go-playground/validator"
 	"log/slog"
 	"net/http"
 	"webhook-delivery/internal/delivery/utils"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
+
+	"github.com/go-playground/validator"
 )
 
 func NewValidator[T any](log *slog.Logger) func(http.Handler) http.Handler {

@@ -2,11 +2,12 @@ package middlewares
 
 import (
 	"context"
-	"github.com/go-chi/render"
 	"log/slog"
 	"net/http"
 	"webhook-delivery/internal/delivery/utils"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
+
+	"github.com/go-chi/render"
 )
 
 type parsedBodyCtxKey int

@@ -1,5 +1,9 @@
 package main
 
+//	@title			Webhook Delivery
+//	@version		1.0.0
+//	@description	An open-source webhook delivery service in Go
+
 import (
 	"context"
 	"log/slog"

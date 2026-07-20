@@ -3,13 +3,14 @@ package pg
 import (
 	"errors"
 	"fmt"
-	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"log/slog"
 	"os"
 	"webhook-delivery/internal/config"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
+
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 func MustMigrate(log *slog.Logger, cfg config.DbConfig) {

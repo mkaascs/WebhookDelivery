@@ -3,28 +3,40 @@ package events
 import (
 	"context"
 	"encoding/json"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
-	"github.com/go-chi/render"
 	"log/slog"
 	"net/http"
 	"time"
 	"webhook-delivery/internal/delivery/utils"
 	"webhook-delivery/internal/domain/dto"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
+
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/render"
 )
 
 type GetResponse struct {
-	ID        string
-	Type      string
-	Payload   json.RawMessage
-	CreatedAt time.Time
+	ID        string          `json:"id" example:"ev_1a2b3c"`
+	Type      string          `json:"type" example:"order.created"`
+	Payload   json.RawMessage `json:"payload" swaggertype:"object"`
+	CreatedAt time.Time       `json:"created_at" example:"2026-07-01T12:00:00Z"`
 }
 
 type EventGetter interface {
 	Get(ctx context.Context, eventID string) (*dto.GetEventResult, error)
 }
 
+// Get godoc
+//
+//	@Summary	Get an event by ID
+//	@Tags		events
+//	@Produce	json
+//	@Param		id	path		string	true	"Event ID"
+//	@Success	200	{object}	GetResponse
+//	@Failure	400	{object}	utils.Response	"id is not provided"
+//	@Failure	404	{object}	utils.Response	"event not found"
+//	@Failure	500	{object}	utils.Response
+//	@Router		/events/{id} [get]
 func Get(getter EventGetter, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		const fn = "handlers.events.Get"

@@ -2,26 +2,41 @@ package endpoints
 
 import (
 	"context"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	"log/slog"
 	"net/http"
 	"webhook-delivery/internal/delivery/middlewares"
 	"webhook-delivery/internal/delivery/utils"
 	"webhook-delivery/internal/domain/dto"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
+
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 )
 
 type UpdateRequest struct {
-	URL         *string `json:"url"`
-	IsActive    *bool   `json:"is_active"`
-	Description *string `json:"description"`
+	URL         *string `json:"url" example:"https://example.com/webhooks"` // New receiver URL (SSRF-validated if present)
+	IsActive    *bool   `json:"is_active" example:"false"`                  // Pause or resume the endpoint
+	Description *string `json:"description" example:"Billing webhook"`      // New description
 }
 
 type EndpointUpdater interface {
 	Update(ctx context.Context, command dto.UpdateEndpointCommand) error
 }
 
+// Update godoc
+//
+//	@Summary		Update an endpoint
+//	@Description	Partially updates the URL, active state or description. An empty body is treated as a no-op. If a URL is provided it is SSRF-validated.
+//	@Tags			endpoints
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path	string			true	"Endpoint ID"
+//	@Param			request	body	UpdateRequest	true	"Fields to update (all optional)"
+//	@Success		204		"No Content"
+//	@Failure		400		{object}	utils.Response	"id is not provided or invalid url"
+//	@Failure		404		{object}	utils.Response	"endpoint not found"
+//	@Failure		500		{object}	utils.Response
+//	@Router			/endpoints/{id} [patch]
 func Update(updater EndpointUpdater, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		const fn = "handlers.endpoints.Update"

@@ -3,14 +3,15 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"github.com/go-chi/render"
-	"github.com/go-playground/validator"
 	"net/http"
 	"webhook-delivery/internal/domain"
+
+	"github.com/go-chi/render"
+	"github.com/go-playground/validator"
 )
 
 type Response struct {
-	Errors []string `json:"errors,omitempty"`
+	Errors []string `json:"errors,omitempty" example:"invalid url"` // Error messages, present only on failure responses
 }
 
 func RenderError(w http.ResponseWriter, req *http.Request, statusCode int, errMessage string) {

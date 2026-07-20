@@ -3,11 +3,12 @@ package pg
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"log/slog"
 	"os"
 	"webhook-delivery/internal/config"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type App struct {

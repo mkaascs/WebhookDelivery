@@ -1,8 +1,6 @@
 package app
 
 import (
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	"log/slog"
 	"os"
 	"webhook-delivery/internal/app/http"
@@ -17,6 +15,9 @@ import (
 	endpointsSvc "webhook-delivery/internal/services/endpoints"
 	eventSvc "webhook-delivery/internal/services/events"
 	subscriptionsSvc "webhook-delivery/internal/services/subscriptions"
+
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 )
 
 type App struct {

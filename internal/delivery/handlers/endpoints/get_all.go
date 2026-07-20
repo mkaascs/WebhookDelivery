@@ -2,8 +2,6 @@ package endpoints
 
 import (
 	"context"
-	"github.com/go-chi/chi/middleware"
-	"github.com/go-chi/render"
 	"log/slog"
 	"net/http"
 	"webhook-delivery/internal/delivery/middlewares"
@@ -11,13 +9,16 @@ import (
 	"webhook-delivery/internal/domain/dto"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
 	"webhook-delivery/internal/lib/ptr"
+
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/render"
 )
 
 type GetAllResponse struct {
 	utils.Response
-	Page      int            `json:"page"`
-	Limit     int            `json:"limit"`
-	Total     int            `json:"total"`
+	Page      int            `json:"page" example:"1"`   // Current page (from 1)
+	Limit     int            `json:"limit" example:"10"` // Page size
+	Total     int            `json:"total" example:"42"` // Total number of endpoints
 	Endpoints []EndpointInfo `json:"endpoints"`
 }
 
@@ -25,6 +26,17 @@ type AllEndpointsGetter interface {
 	GetAll(ctx context.Context, command dto.GetAllEndpointsCommand) (*dto.GetAllEndpointsResult, error)
 }
 
+// GetAll godoc
+//
+//	@Summary		List endpoints
+//	@Description	Returns a paginated list of endpoints. Invalid or missing pagination params fall back to defaults.
+//	@Tags			endpoints
+//	@Produce		json
+//	@Param			page	query		int	false	"Page number (from 1, default 1)"
+//	@Param			limit	query		int	false	"Page size (10-100, default 10)"
+//	@Success		200		{object}	GetAllResponse
+//	@Failure		500		{object}	utils.Response
+//	@Router			/endpoints [get]
 func GetAll(getter AllEndpointsGetter, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		const fn = "handlers.endpoints.GetAll"
