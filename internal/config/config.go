@@ -16,9 +16,10 @@ const (
 )
 
 type Config struct {
-	Env        string `yaml:"env" default:"local"`
-	DbConfig   `yaml:"db"`
-	HttpConfig `yaml:"http_server"`
+	Env           string `yaml:"env" default:"local"`
+	DbConfig      `yaml:"db"`
+	HttpConfig    `yaml:"http_server"`
+	WorkersConfig `yaml:"workers"`
 }
 
 type HttpConfig struct {

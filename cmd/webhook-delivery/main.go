@@ -13,9 +13,6 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	cfg := config.MustLoad()
 	logger := logging.MustLoad(cfg.Env)
 
@@ -24,15 +21,23 @@ func main() {
 	application := app.New(logger, *cfg)
 
 	application.Postgres.MustConnect()
-	go application.Http.MustRun()
+	application.Workers.Start()
+
+	application.MountMiddlewares()
+	application.MountHandlers()
+
+	go application.HTTP.MustRun()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
 	<-stop
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
 	application.Postgres.Close()
-	if err := application.Http.Shutdown(ctx); err != nil {
+	application.Workers.Shutdown()
+	if err := application.HTTP.Shutdown(ctx); err != nil {
 		logger.Error(err.Error())
 	}
 

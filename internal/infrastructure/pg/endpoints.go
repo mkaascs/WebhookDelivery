@@ -53,7 +53,7 @@ func (e *Endpoints) Add(ctx context.Context, command dto.AddEndpointCommand) (*d
 		return nil, fmt.Errorf("%s: %w", fn, err)
 	}
 
-	if _, err := insertSubscription(ctx, e.pool, result.ID, command.EventTypes); err != nil {
+	if _, err := insertSubscription(ctx, tx, result.ID, command.EventTypes); err != nil {
 		return nil, err
 	}
 
