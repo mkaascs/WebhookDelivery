@@ -1,6 +1,7 @@
 package endpoints
 
 import (
+	"context"
 	"errors"
 	"io"
 	"log/slog"
@@ -8,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"webhook-delivery/internal/domain"
@@ -19,13 +21,13 @@ func Test_Get(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		query      string
+		id         string
 		setupMock  func(m *MockEndpointGetter)
 		wantStatus int
 	}{
 		{
-			name:  "success",
-			query: "id=ep-123",
+			name: "success",
+			id:   "ep-123",
 			setupMock: func(m *MockEndpointGetter) {
 				m.EXPECT().GetByID(gomock.Any(), "ep-123").
 					Return(&dto.GetEndpointResult{ID: "ep-123", URL: "https://hooks.example.com", IsActive: true}, nil)
@@ -34,12 +36,12 @@ func Test_Get(t *testing.T) {
 		},
 		{
 			name:       "missing id param",
-			query:      "",
+			id:         "",
 			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:  "endpoint not found",
-			query: "id=ep-404",
+			name: "endpoint not found",
+			id:   "ep-404",
 			setupMock: func(m *MockEndpointGetter) {
 				m.EXPECT().GetByID(gomock.Any(), "ep-404").
 					Return(nil, domain.ErrEndpointNotFound)
@@ -47,8 +49,8 @@ func Test_Get(t *testing.T) {
 			wantStatus: http.StatusNotFound,
 		},
 		{
-			name:  "generic internal error",
-			query: "id=ep-123",
+			name: "generic internal error",
+			id:   "ep-123",
 			setupMock: func(m *MockEndpointGetter) {
 				m.EXPECT().GetByID(gomock.Any(), "ep-123").
 					Return(nil, errors.New("redis down"))
@@ -65,9 +67,12 @@ func Test_Get(t *testing.T) {
 				tt.setupMock(getter)
 			}
 
-			req := httptest.NewRequest(http.MethodGet, "/endpoints?"+tt.query, nil)
-			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/endpoints", nil)
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("id", tt.id)
+			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
+			rr := httptest.NewRecorder()
 			Get(getter, log).ServeHTTP(rr, req)
 
 			require.Equal(t, tt.wantStatus, rr.Code)

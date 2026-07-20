@@ -1,6 +1,7 @@
 package endpoints
 
 import (
+	"context"
 	"errors"
 	"io"
 	"log/slog"
@@ -8,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"webhook-delivery/internal/domain"
@@ -18,13 +20,13 @@ func Test_Delete(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		query      string
+		id         string
 		setupMock  func(m *MockEndpointDeleter)
 		wantStatus int
 	}{
 		{
-			name:  "success",
-			query: "id=ep-123",
+			name: "success",
+			id:   "ep-123",
 			setupMock: func(m *MockEndpointDeleter) {
 				m.EXPECT().Delete(gomock.Any(), "ep-123").Return(nil)
 			},
@@ -32,20 +34,20 @@ func Test_Delete(t *testing.T) {
 		},
 		{
 			name:       "missing id param",
-			query:      "",
+			id:         "",
 			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:  "endpoint not found",
-			query: "id=ep-404",
+			name: "endpoint not found",
+			id:   "ep-404",
 			setupMock: func(m *MockEndpointDeleter) {
 				m.EXPECT().Delete(gomock.Any(), "ep-404").Return(domain.ErrEndpointNotFound)
 			},
 			wantStatus: http.StatusNotFound,
 		},
 		{
-			name:  "generic internal error",
-			query: "id=ep-123",
+			name: "generic internal error",
+			id:   "ep-123",
 			setupMock: func(m *MockEndpointDeleter) {
 				m.EXPECT().Delete(gomock.Any(), "ep-123").Return(errors.New("redis down"))
 			},
@@ -61,9 +63,12 @@ func Test_Delete(t *testing.T) {
 				tt.setupMock(deleter)
 			}
 
-			req := httptest.NewRequest(http.MethodDelete, "/endpoints?"+tt.query, nil)
-			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodDelete, "/endpoints", nil)
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("id", tt.id)
+			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
+			rr := httptest.NewRecorder()
 			Delete(deleter, log).ServeHTTP(rr, req)
 
 			require.Equal(t, tt.wantStatus, rr.Code)

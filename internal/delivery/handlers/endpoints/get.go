@@ -2,6 +2,7 @@ package endpoints
 
 import (
 	"context"
+	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"log/slog"
@@ -37,7 +38,7 @@ func Get(getter EndpointGetter, log *slog.Logger) http.HandlerFunc {
 		log = log.With(slog.String("fn", fn),
 			slog.String("request_id", middleware.GetReqID(req.Context())))
 
-		id := req.URL.Query().Get("id")
+		id := chi.URLParam(req, "id")
 		if id == "" {
 			log.Info("no endpoint id provided")
 			utils.RenderError(w, req, http.StatusBadRequest, "url param endpoint id is not provided")

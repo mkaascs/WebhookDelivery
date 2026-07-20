@@ -1,6 +1,7 @@
 package endpoints
 
 import (
+	"context"
 	"errors"
 	"io"
 	"log/slog"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-chi/chi"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"webhook-delivery/internal/delivery/middlewares"
@@ -76,7 +78,11 @@ func Test_Update(t *testing.T) {
 
 			handler := middlewares.NewBodyParser[UpdateRequest](log)(Update(updater, log))
 
-			req := httptest.NewRequest(http.MethodPatch, "/endpoints?id="+tt.id, strings.NewReader(tt.body))
+			req := httptest.NewRequest(http.MethodPatch, "/endpoints", strings.NewReader(tt.body))
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("id", tt.id)
+			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
 			rr := httptest.NewRecorder()
 
 			handler.ServeHTTP(rr, req)
