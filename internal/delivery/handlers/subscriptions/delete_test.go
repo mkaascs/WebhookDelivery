@@ -1,6 +1,7 @@
 package subscriptions
 
 import (
+	"context"
 	"errors"
 	"io"
 	"log/slog"
@@ -8,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"webhook-delivery/internal/domain"
@@ -18,13 +20,13 @@ func Test_Delete(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		query      string
+		id         string
 		setupMock  func(m *MockSubscriptionDeleter)
 		wantStatus int
 	}{
 		{
-			name:  "success",
-			query: "id=sub-1",
+			name: "success",
+			id:   "sub-1",
 			setupMock: func(m *MockSubscriptionDeleter) {
 				m.EXPECT().Delete(gomock.Any(), "sub-1").Return(nil)
 			},
@@ -32,20 +34,20 @@ func Test_Delete(t *testing.T) {
 		},
 		{
 			name:       "missing id param",
-			query:      "",
+			id:         "",
 			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:  "subscription not found",
-			query: "id=sub-404",
+			name: "subscription not found",
+			id:   "sub-404",
 			setupMock: func(m *MockSubscriptionDeleter) {
 				m.EXPECT().Delete(gomock.Any(), "sub-404").Return(domain.ErrSubscriptionNotFound)
 			},
 			wantStatus: http.StatusNotFound,
 		},
 		{
-			name:  "generic internal error",
-			query: "id=sub-1",
+			name: "generic internal error",
+			id:   "sub-1",
 			setupMock: func(m *MockSubscriptionDeleter) {
 				m.EXPECT().Delete(gomock.Any(), "sub-1").Return(errors.New("redis down"))
 			},
@@ -61,9 +63,12 @@ func Test_Delete(t *testing.T) {
 				tt.setupMock(deleter)
 			}
 
-			req := httptest.NewRequest(http.MethodDelete, "/subscriptions?"+tt.query, nil)
-			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodDelete, "/subscriptions", nil)
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("id", tt.id)
+			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
+			rr := httptest.NewRecorder()
 			Delete(deleter, log).ServeHTTP(rr, req)
 
 			require.Equal(t, tt.wantStatus, rr.Code)

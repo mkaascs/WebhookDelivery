@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"errors"
 	"io"
 	"log/slog"
@@ -8,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"webhook-delivery/internal/domain"
@@ -19,13 +21,13 @@ func Test_Get(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		query      string
+		id         string
 		setupMock  func(m *MockEventGetter)
 		wantStatus int
 	}{
 		{
-			name:  "success",
-			query: "id=ev-1",
+			name: "success",
+			id:   "ev-1",
 			setupMock: func(m *MockEventGetter) {
 				m.EXPECT().Get(gomock.Any(), "ev-1").
 					Return(&dto.GetEventResult{Event: domain.Event{ID: "ev-1", Type: "order.created"}}, nil)
@@ -34,20 +36,20 @@ func Test_Get(t *testing.T) {
 		},
 		{
 			name:       "missing id param",
-			query:      "",
+			id:         "",
 			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:  "event not found",
-			query: "id=ev-404",
+			name: "event not found",
+			id:   "ev-404",
 			setupMock: func(m *MockEventGetter) {
 				m.EXPECT().Get(gomock.Any(), "ev-404").Return(nil, domain.ErrEventNotFound)
 			},
 			wantStatus: http.StatusNotFound,
 		},
 		{
-			name:  "generic internal error",
-			query: "id=ev-1",
+			name: "generic internal error",
+			id:   "ev-1",
 			setupMock: func(m *MockEventGetter) {
 				m.EXPECT().Get(gomock.Any(), "ev-1").Return(nil, errors.New("redis down"))
 			},
@@ -63,9 +65,12 @@ func Test_Get(t *testing.T) {
 				tt.setupMock(getter)
 			}
 
-			req := httptest.NewRequest(http.MethodGet, "/events?"+tt.query, nil)
-			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/events", nil)
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("id", tt.id)
+			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
+			rr := httptest.NewRecorder()
 			Get(getter, log).ServeHTTP(rr, req)
 
 			require.Equal(t, tt.wantStatus, rr.Code)

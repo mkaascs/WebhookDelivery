@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"log/slog"
@@ -30,7 +31,7 @@ func Get(getter EventGetter, log *slog.Logger) http.HandlerFunc {
 		log = log.With(slog.String("fn", fn),
 			slog.String("request_id", middleware.GetReqID(req.Context())))
 
-		id := req.URL.Query().Get("id")
+		id := chi.URLParam(req, "id")
 		if id == "" {
 			log.Info("event id is not provided")
 			utils.RenderError(w, req, http.StatusBadRequest, "event id is not provided")

@@ -2,6 +2,7 @@ package subscriptions
 
 import (
 	"context"
+	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"log/slog"
 	"net/http"
@@ -19,7 +20,7 @@ func Delete(deleter SubscriptionDeleter, log *slog.Logger) http.HandlerFunc {
 		log = log.With(slog.String("fn", fn),
 			slog.String("request_id", middleware.GetReqID(req.Context())))
 
-		subscriptionID := req.URL.Query().Get("id")
+		subscriptionID := chi.URLParam(req, "id")
 		if subscriptionID == "" {
 			log.Info("subscription id is not provided")
 			utils.RenderError(w, req, http.StatusBadRequest, "subscription id is not provided")
