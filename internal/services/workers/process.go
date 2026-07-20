@@ -52,6 +52,7 @@ func (s *Service) processBatch(ctx context.Context) {
 		}
 
 		err = s.deliveryRepo.UpdateStatus(ctx, dto.UpdateDeliveryStatusCommand{
+			ID:          delivery.ID,
 			Status:      status,
 			Attempts:    delivery.Attempts,
 			NextRetryAt: delivery.NextRetryAt.Add(s.backoff(delivery.Attempts)),

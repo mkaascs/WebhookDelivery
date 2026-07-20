@@ -74,7 +74,7 @@ func (d *Deliveries) ClaimPending(ctx context.Context, batchSize int) ([]dto.Cla
 	rows, err := d.pool.Query(ctx, `
 		UPDATE deliveries d
 		SET status = 'processing'
-		FROM ev events, e endpoints
+		FROM events ev, endpoints e
 		WHERE ev.id = d.event_id
 		    AND e.id = d.endpoint_id
 		    AND d.id IN (
@@ -97,7 +97,7 @@ func (d *Deliveries) ClaimPending(ctx context.Context, batchSize int) ([]dto.Cla
 	var results []dto.ClaimPendingResult
 	for rows.Next() {
 		var result dto.ClaimPendingResult
-		if err := rows.Scan(&result.URL, &result.Secret, &result.Payload, &result.Attempts, &result.MaxAttempts, &result.NextRetryAt); err != nil {
+		if err := rows.Scan(&result.ID, &result.URL, &result.Secret, &result.Payload, &result.Attempts, &result.MaxAttempts, &result.NextRetryAt); err != nil {
 			return nil, fmt.Errorf("%s: %w", fn, err)
 		}
 

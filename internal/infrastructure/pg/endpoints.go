@@ -44,7 +44,7 @@ func (e *Endpoints) Add(ctx context.Context, command dto.AddEndpointCommand) (*d
 
 	err = tx.QueryRow(ctx, `
 		INSERT INTO endpoints(id, url, secret, description) 
-		VALUES ($1, $2, $3, $4) 
+		VALUES ($1, $2, $3, COALESCE($4, '')) 
 		RETURNING id, created_at`,
 		uuid.NewEndpoint(), command.URL, command.Secret, command.Description).
 		Scan(&result.ID, &result.CreatedAt)
