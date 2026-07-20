@@ -110,6 +110,7 @@ func Test_processBatch(t *testing.T) {
 
 	newDelivery := func(url string) dto.ClaimPendingResult {
 		return dto.ClaimPendingResult{
+			ID:          "del-1",
 			URL:         url,
 			Secret:      []byte("s"),
 			Payload:     json.RawMessage(`{}`),
@@ -135,16 +136,17 @@ func Test_processBatch(t *testing.T) {
 
 	t.Run("update status by response code and attempts", func(t *testing.T) {
 		cases := []struct {
-			name         string
-			serverCode   int
-			attempts     int
-			maxAttempts  int
-			wantStatus   domain.DeliveryStatus
-			wantAttempts int
+			name            string
+			serverCode      int
+			attempts        int
+			maxAttempts     int
+			wantStatus      domain.DeliveryStatus
+			wantAttempts    int
+			wantRescheduled bool // pending gets a fresh next_retry_at; delivered/failed keep the original
 		}{
-			{"2xx -> delivered", http.StatusOK, 0, 5, domain.StatusDelivered, 1},
-			{"non-2xx with attempts left -> pending", http.StatusInternalServerError, 0, 5, domain.StatusPending, 1},
-			{"non-2xx with attempts exhausted -> failed", http.StatusInternalServerError, 4, 5, domain.StatusFailed, 5},
+			{"2xx -> delivered", http.StatusOK, 0, 5, domain.StatusDelivered, 1, false},
+			{"non-2xx with attempts left -> pending", http.StatusInternalServerError, 0, 5, domain.StatusPending, 1, true},
+			{"non-2xx with attempts exhausted -> failed", http.StatusInternalServerError, 4, 5, domain.StatusFailed, 5, false},
 		}
 
 		for _, c := range cases {
@@ -168,16 +170,22 @@ func Test_processBatch(t *testing.T) {
 						return nil
 					})
 
+				before := time.Now()
 				svc.processBatch(context.Background())
 
+				require.Equal(t, delivery.ID, got.ID)
 				require.Equal(t, c.wantStatus, got.Status)
 				require.Equal(t, c.wantAttempts, got.Attempts)
-				require.True(t, got.NextRetryAt.After(fixedTime))
+				if c.wantRescheduled {
+					require.True(t, got.NextRetryAt.After(before))
+				} else {
+					require.Equal(t, fixedTime, got.NextRetryAt)
+				}
 			})
 		}
 	})
 
-	t.Run("transport error leaves delivery untouched", func(t *testing.T) {
+	t.Run("transport error is retried as pending", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 		url := srv.URL
 		srv.Close()
@@ -186,6 +194,18 @@ func Test_processBatch(t *testing.T) {
 		repo.EXPECT().ClaimPending(gomock.Any(), gomock.Any()).
 			Return([]dto.ClaimPendingResult{newDelivery(url)}, nil)
 
+		var got dto.UpdateDeliveryStatusCommand
+		repo.EXPECT().UpdateStatus(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, cmd dto.UpdateDeliveryStatusCommand) error {
+				got = cmd
+				return nil
+			})
+
+		before := time.Now()
 		svc.processBatch(context.Background())
+
+		require.Equal(t, domain.StatusPending, got.Status)
+		require.Equal(t, 1, got.Attempts)
+		require.True(t, got.NextRetryAt.After(before))
 	})
 }
