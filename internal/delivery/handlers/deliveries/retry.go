@@ -2,12 +2,13 @@ package deliveries
 
 import (
 	"context"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	"log/slog"
 	"net/http"
 	"webhook-delivery/internal/delivery/utils"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
+
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 )
 
 type DeliveryRetryer interface {
