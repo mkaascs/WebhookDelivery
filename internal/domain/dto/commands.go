@@ -49,3 +49,9 @@ type AddEndpointCommand struct {
 	Description *string
 	Secret      string
 }
+
+type GetDeliveriesFromEventCommand struct {
+	EventID string
+	Page    int
+	Limit   int
+}

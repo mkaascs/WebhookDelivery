@@ -36,16 +36,16 @@ func (m *MockAllDeliveriesGetter) EXPECT() *MockAllDeliveriesGetterMockRecorder 
 }
 
 // GetFromEvent mocks base method.
-func (m *MockAllDeliveriesGetter) GetFromEvent(ctx context.Context, eventID string) ([]dto.GetDeliveryResult, error) {
+func (m *MockAllDeliveriesGetter) GetFromEvent(ctx context.Context, command dto.GetDeliveriesFromEventCommand) (*dto.GetDeliveriesFromEventResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFromEvent", ctx, eventID)
-	ret0, _ := ret[0].([]dto.GetDeliveryResult)
+	ret := m.ctrl.Call(m, "GetFromEvent", ctx, command)
+	ret0, _ := ret[0].(*dto.GetDeliveriesFromEventResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetFromEvent indicates an expected call of GetFromEvent.
-func (mr *MockAllDeliveriesGetterMockRecorder) GetFromEvent(ctx, eventID interface{}) *gomock.Call {
+func (mr *MockAllDeliveriesGetterMockRecorder) GetFromEvent(ctx, command interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFromEvent", reflect.TypeOf((*MockAllDeliveriesGetter)(nil).GetFromEvent), ctx, eventID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFromEvent", reflect.TypeOf((*MockAllDeliveriesGetter)(nil).GetFromEvent), ctx, command)
 }

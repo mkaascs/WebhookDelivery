@@ -25,33 +25,36 @@ func (s *Service) GetByID(ctx context.Context, id string) (*dto.GetDeliveryResul
 		return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 	}
 
+	log.Info("delivery info was sent successfully", slog.String("id", id))
+
 	return &dto.GetDeliveryResult{
 		Delivery: *delivery,
 	}, nil
 }
 
-func (s *Service) GetFromEvent(ctx context.Context, eventID string) ([]dto.GetDeliveryResult, error) {
+func (s *Service) GetFromEvent(ctx context.Context, command dto.GetDeliveriesFromEventCommand) (*dto.GetDeliveriesFromEventResult, error) {
 	const fn = "services.deliveries.Service.GetFromEvent"
 	log := s.log.With(slog.String("fn", fn))
 
-	delivery, err := s.repo.GetFromEvent(ctx, eventID)
+	deliveries, total, err := s.repo.GetFromEvent(ctx, command)
 	if err != nil {
 		const msg = "failed to get deliveries from event"
 		if utils.IsCtxError(err) || utils.IsDomainError(err) {
-			log.Info(msg, sloglib.Error(err), slog.String("event_id", eventID))
+			log.Info(msg, sloglib.Error(err), slog.String("event_id", command.EventID))
 			return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 		}
 
-		log.Error(msg, sloglib.Error(err), slog.String("event_id", eventID))
+		log.Error(msg, sloglib.Error(err), slog.String("event_id", command.EventID))
 		return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 	}
 
-	result := make([]dto.GetDeliveryResult, 0, len(delivery))
-	for _, delivery := range delivery {
-		result = append(result, dto.GetDeliveryResult{
-			Delivery: delivery,
-		})
-	}
+	log.Info("deliveries info from event was sent successfully", slog.String("event_id", command.EventID),
+		slog.Int("total", total),
+		slog.Int("limit", command.Limit),
+		slog.Int("page", command.Page))
 
-	return result, nil
+	return &dto.GetDeliveriesFromEventResult{
+		Deliveries: deliveries,
+		Total:      total,
+	}, nil
 }

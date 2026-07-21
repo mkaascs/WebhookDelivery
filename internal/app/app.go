@@ -7,12 +7,14 @@ import (
 	"webhook-delivery/internal/app/pg"
 	"webhook-delivery/internal/app/workers"
 	"webhook-delivery/internal/config"
+	"webhook-delivery/internal/delivery/handlers/deliveries"
 	"webhook-delivery/internal/delivery/handlers/endpoints"
 	"webhook-delivery/internal/delivery/handlers/events"
 	"webhook-delivery/internal/delivery/handlers/subscriptions"
 	"webhook-delivery/internal/delivery/middlewares"
 	pgRepo "webhook-delivery/internal/infrastructure/pg"
-	endpointsSvc "webhook-delivery/internal/services/endpoints"
+	deliverySvc "webhook-delivery/internal/services/deliveries"
+	endpointSvc "webhook-delivery/internal/services/endpoints"
 	eventSvc "webhook-delivery/internal/services/events"
 	subscriptionsSvc "webhook-delivery/internal/services/subscriptions"
 
@@ -64,24 +66,25 @@ func (a *App) MountHandlers() {
 	subscriptionsRepo := pgRepo.NewSubscriptions(a.Postgres.Pool, a.log)
 
 	eventService := eventSvc.NewService(eventRepo, deliveryRepo, a.Workers.Workers, a.log)
-	endpointsService := endpointsSvc.NewService(a.log, endpointRepo)
+	endpointService := endpointSvc.NewService(endpointRepo, a.log)
+	deliveryService := deliverySvc.NewService(deliveryRepo, a.Workers.Workers, a.log)
 	subscriptionService := subscriptionsSvc.NewService(subscriptionsRepo, a.log)
 
 	a.HTTP.Router.Route("/api/v1", func(r chi.Router) {
 		r.Route("/endpoints", func(r chi.Router) {
-			r.Delete("/{id}", endpoints.Delete(endpointsService, a.log))
+			r.Delete("/{id}", endpoints.Delete(endpointService, a.log))
 			r.With(middlewares.NewUrlPaginationParser(a.log)).
-				Get("/", endpoints.GetAll(endpointsService, a.log))
+				Get("/", endpoints.GetAll(endpointService, a.log))
 
-			r.Get("/{id}", endpoints.Get(endpointsService, a.log))
+			r.Get("/{id}", endpoints.Get(endpointService, a.log))
 
 			r.With(middlewares.NewBodyParser[endpoints.RegisterRequest](a.log)).
 				With(middlewares.NewValidator[endpoints.RegisterRequest](a.log)).
-				Post("/", endpoints.Register(endpointsService, a.log))
+				Post("/", endpoints.Register(endpointService, a.log))
 
 			r.With(middlewares.NewBodyParser[endpoints.UpdateRequest](a.log)).
 				With(middlewares.NewValidator[endpoints.UpdateRequest](a.log)).
-				Patch("/{id}", endpoints.Update(endpointsService, a.log))
+				Patch("/{id}", endpoints.Update(endpointService, a.log))
 
 			r.Route("/{id}/subscriptions", func(r chi.Router) {
 				r.With(middlewares.NewBodyParser[subscriptions.SubscribeRequest](a.log)).
@@ -93,15 +96,23 @@ func (a *App) MountHandlers() {
 		})
 
 		r.Route("/events", func(r chi.Router) {
-			r.Get("/{id}", events.Get(eventService, a.log))
-
 			r.With(middlewares.NewBodyParser[events.PublishRequest](a.log)).
 				With(middlewares.NewValidator[events.PublishRequest](a.log)).
 				Post("/", events.Publish(eventService, a.log))
+
+			r.Get("/{id}", events.Get(eventService, a.log))
+
+			r.With(middlewares.NewUrlPaginationParser(a.log)).
+				Get("/{id}/deliveries", deliveries.GetFromEvent(deliveryService, a.log))
 		})
 
 		r.Route("/subscriptions", func(r chi.Router) {
 			r.Delete("/{id}", subscriptions.Delete(subscriptionService, a.log))
+		})
+
+		r.Route("/deliveries", func(r chi.Router) {
+			r.Post("/{id}/retry", deliveries.Retry(deliveryService, a.log))
+			r.Get("/{id}", deliveries.Get(deliveryService, a.log))
 		})
 	})
 }

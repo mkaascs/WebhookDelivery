@@ -20,6 +20,6 @@ type Service struct {
 	repo EndpointRepo
 }
 
-func NewService(log *slog.Logger, repo EndpointRepo) *Service {
+func NewService(repo EndpointRepo, log *slog.Logger) *Service {
 	return &Service{log: log, repo: repo}
 }

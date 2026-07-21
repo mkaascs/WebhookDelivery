@@ -155,16 +155,21 @@ func (d *Deliveries) GetByID(ctx context.Context, id string) (*domain.Delivery, 
 	return del, nil
 }
 
-func (d *Deliveries) GetFromEvent(ctx context.Context, eventID string) ([]domain.Delivery, error) {
+func (d *Deliveries) GetFromEvent(ctx context.Context, command dto.GetDeliveriesFromEventCommand) ([]domain.Delivery, int, error) {
 	const fn = "infrastructure.pg.Deliveries.GetFromEvent"
+
+	offset := (command.Page - 1) * command.Limit
 
 	rows, err := d.pool.Query(ctx, `
 		SELECT id, endpoint_id, status, attempts, max_attempts, next_retry_at, created_at, last_response_code, last_error
 		FROM deliveries
-		WHERE event_id = $1`, eventID)
+		WHERE event_id = $1
+		ORDER BY created_at ASC
+		LIMIT $2
+		OFFSET $3`, command.EventID, command.Limit, offset)
 
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", fn, err)
+		return nil, 0, fmt.Errorf("%s: %w", fn, err)
 	}
 
 	defer rows.Close()
@@ -173,15 +178,20 @@ func (d *Deliveries) GetFromEvent(ctx context.Context, eventID string) ([]domain
 	for rows.Next() {
 		var r domain.Delivery
 		if err := rows.Scan(&r.ID, &r.EndpointID, &r.Status, &r.Attempts, &r.MaxAttempts, &r.NextRetryAt, &r.CreatedAt, &r.LastResponseCode, &r.LastError); err != nil {
-			return nil, fmt.Errorf("%s: %w", fn, err)
+			return nil, 0, fmt.Errorf("%s: %w", fn, err)
 		}
 
 		results = append(results, r)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("%s: %w", fn, err)
+		return nil, 0, fmt.Errorf("%s: %w", fn, err)
 	}
 
-	return results, nil
+	var total int
+	if err = d.pool.QueryRow(ctx, `SELECT COUNT(*) FROM deliveries WHERE event_id = $1`, command.EventID).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	return results, total, nil
 }

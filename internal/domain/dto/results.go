@@ -65,3 +65,8 @@ type GetSubscriptionResult struct {
 type GetDeliveryResult struct {
 	Delivery domain.Delivery
 }
+
+type GetDeliveriesFromEventResult struct {
+	Total      int
+	Deliveries []domain.Delivery
+}

@@ -17,7 +17,7 @@ func newTestService(t *testing.T) (*Service, *MockEndpointRepo) {
 	ctrl := gomock.NewController(t)
 	repo := NewMockEndpointRepo(ctrl)
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return NewService(log, repo), repo
+	return NewService(repo, log), repo
 }
 
 func Test_Service_Register(t *testing.T) {

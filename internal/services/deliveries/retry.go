@@ -35,6 +35,8 @@ func (s *Service) Retry(ctx context.Context, id string) error {
 		return fmt.Errorf("%s: %s: %w", fn, msg, err)
 	}
 
+	s.notifier.Notify()
+
 	log.Info("delivery was retried", slog.String("id", id))
 
 	return nil

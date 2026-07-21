@@ -13,6 +13,41 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
+// MockRetryNotifier is a mock of RetryNotifier interface.
+type MockRetryNotifier struct {
+	ctrl     *gomock.Controller
+	recorder *MockRetryNotifierMockRecorder
+}
+
+// MockRetryNotifierMockRecorder is the mock recorder for MockRetryNotifier.
+type MockRetryNotifierMockRecorder struct {
+	mock *MockRetryNotifier
+}
+
+// NewMockRetryNotifier creates a new mock instance.
+func NewMockRetryNotifier(ctrl *gomock.Controller) *MockRetryNotifier {
+	mock := &MockRetryNotifier{ctrl: ctrl}
+	mock.recorder = &MockRetryNotifierMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockRetryNotifier) EXPECT() *MockRetryNotifierMockRecorder {
+	return m.recorder
+}
+
+// Notify mocks base method.
+func (m *MockRetryNotifier) Notify() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Notify")
+}
+
+// Notify indicates an expected call of Notify.
+func (mr *MockRetryNotifierMockRecorder) Notify() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Notify", reflect.TypeOf((*MockRetryNotifier)(nil).Notify))
+}
+
 // MockDeliveryRepo is a mock of DeliveryRepo interface.
 type MockDeliveryRepo struct {
 	ctrl     *gomock.Controller
@@ -52,18 +87,19 @@ func (mr *MockDeliveryRepoMockRecorder) GetByID(ctx, id interface{}) *gomock.Cal
 }
 
 // GetFromEvent mocks base method.
-func (m *MockDeliveryRepo) GetFromEvent(ctx context.Context, eventID string) ([]domain.Delivery, error) {
+func (m *MockDeliveryRepo) GetFromEvent(ctx context.Context, command dto.GetDeliveriesFromEventCommand) ([]domain.Delivery, int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFromEvent", ctx, eventID)
+	ret := m.ctrl.Call(m, "GetFromEvent", ctx, command)
 	ret0, _ := ret[0].([]domain.Delivery)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(int)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // GetFromEvent indicates an expected call of GetFromEvent.
-func (mr *MockDeliveryRepoMockRecorder) GetFromEvent(ctx, eventID interface{}) *gomock.Call {
+func (mr *MockDeliveryRepoMockRecorder) GetFromEvent(ctx, command interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFromEvent", reflect.TypeOf((*MockDeliveryRepo)(nil).GetFromEvent), ctx, eventID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFromEvent", reflect.TypeOf((*MockDeliveryRepo)(nil).GetFromEvent), ctx, command)
 }
 
 // UpdateStatus mocks base method.

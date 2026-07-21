@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 	"webhook-delivery/internal/delivery/utils"
+	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
 )
@@ -62,22 +63,22 @@ func Get(getter DeliveryGetter, log *slog.Logger) http.HandlerFunc {
 
 		render.Status(req, http.StatusOK)
 		render.JSON(w, req, GetResponse{
-			DeliveryInfo: mapResultToResponse(*result),
+			DeliveryInfo: mapDomainToResponse(result.Delivery),
 		})
 	}
 }
 
-func mapResultToResponse(result dto.GetDeliveryResult) DeliveryInfo {
+func mapDomainToResponse(result domain.Delivery) DeliveryInfo {
 	return DeliveryInfo{
-		ID:               result.Delivery.ID,
-		EndpointID:       result.Delivery.EndpointID,
-		EventID:          result.Delivery.EventID,
-		Status:           string(result.Delivery.Status),
-		Attempts:         result.Delivery.Attempts,
-		MaxAttempts:      result.Delivery.MaxAttempts,
-		NextRetryAt:      result.Delivery.NextRetryAt,
-		CreatedAt:        result.Delivery.CreatedAt,
-		LastResponseCode: result.Delivery.LastResponseCode,
-		LastError:        result.Delivery.LastError,
+		ID:               result.ID,
+		EndpointID:       result.EndpointID,
+		EventID:          result.EventID,
+		Status:           string(result.Status),
+		Attempts:         result.Attempts,
+		MaxAttempts:      result.MaxAttempts,
+		NextRetryAt:      result.NextRetryAt,
+		CreatedAt:        result.CreatedAt,
+		LastResponseCode: result.LastResponseCode,
+		LastError:        result.LastError,
 	}
 }
