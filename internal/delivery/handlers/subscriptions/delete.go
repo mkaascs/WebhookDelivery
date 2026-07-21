@@ -41,7 +41,7 @@ func Delete(deleter SubscriptionDeleter, log *slog.Logger) http.HandlerFunc {
 
 		if err := deleter.Delete(req.Context(), subscriptionID); err != nil {
 			const msg = "failed to delete subscription"
-			if utils.IsCtxError(err) || utils.TryRenderEndpointsError(w, req, err) {
+			if utils.IsCtxError(err) || utils.TryRenderDomainError(w, req, err) {
 				log.Info(msg, sloglib.Error(err))
 				return
 			}

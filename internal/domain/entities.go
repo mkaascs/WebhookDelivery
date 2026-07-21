@@ -38,13 +38,15 @@ const (
 	StatusProcessing DeliveryStatus = "processing"
 )
 
-type Deliveries struct {
-	ID          string
-	EndpointID  string
-	EventID     string
-	Status      DeliveryStatus
-	Attempts    int
-	MaxAttempts int
-	NextRetryAt time.Time
-	CreatedAt   time.Time
+type Delivery struct {
+	ID               string
+	EndpointID       string
+	EventID          string
+	Status           DeliveryStatus
+	Attempts         int
+	MaxAttempts      int
+	NextRetryAt      time.Time
+	CreatedAt        time.Time
+	LastResponseCode *int
+	LastError        *string
 }

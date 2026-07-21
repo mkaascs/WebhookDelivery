@@ -60,7 +60,7 @@ func Get(getter EndpointGetter, log *slog.Logger) http.HandlerFunc {
 		result, err := getter.GetByID(req.Context(), id)
 		if err != nil {
 			const msg = "failed to get endpoint by id"
-			if utils.IsCtxError(err) || utils.TryRenderEndpointsError(w, req, err) {
+			if utils.IsCtxError(err) || utils.TryRenderDomainError(w, req, err) {
 				log.Info(msg, sloglib.Error(err))
 				return
 			}

@@ -61,3 +61,7 @@ type GetSubscriptionResult struct {
 	EventType  string
 	CreatedAt  time.Time
 }
+
+type GetDeliveryResult struct {
+	Delivery domain.Delivery
+}

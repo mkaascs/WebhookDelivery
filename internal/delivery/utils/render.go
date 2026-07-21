@@ -43,7 +43,7 @@ func RenderValidationErrors(w http.ResponseWriter, req *http.Request, errs valid
 	render.JSON(w, req, Response{Errors: errMessages})
 }
 
-func TryRenderEndpointsError(w http.ResponseWriter, req *http.Request, err error) bool {
+func TryRenderDomainError(w http.ResponseWriter, req *http.Request, err error) bool {
 	if errors.Is(err, domain.ErrEndpointNotFound) {
 		RenderError(w, req, http.StatusNotFound, "endpoint with this id not found")
 		return true
@@ -61,6 +61,11 @@ func TryRenderEndpointsError(w http.ResponseWriter, req *http.Request, err error
 
 	if errors.Is(err, domain.ErrEventNotFound) {
 		RenderError(w, req, http.StatusNotFound, "event with this id not found")
+		return true
+	}
+
+	if errors.Is(err, domain.ErrDeliveryNotFound) {
+		RenderError(w, req, http.StatusNotFound, "delivery with this id not found")
 		return true
 	}
 
