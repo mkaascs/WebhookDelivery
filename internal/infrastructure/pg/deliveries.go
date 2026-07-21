@@ -2,7 +2,9 @@ package pg
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"log/slog"
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
@@ -130,4 +132,56 @@ func (d *Deliveries) UpdateStatus(ctx context.Context, command dto.UpdateDeliver
 	}
 
 	return nil
+}
+
+func (d *Deliveries) GetByID(ctx context.Context, id string) (*domain.Delivery, error) {
+	const fn = "infrastructure.pg.Deliveries.GetByID"
+
+	del := &domain.Delivery{ID: id}
+	err := d.pool.QueryRow(ctx, `
+		SELECT endpoint_id, event_id, status, attempts, max_attempts, next_retry_at, created_at, last_response_code, last_error
+		FROM deliveries
+		WHERE id = $1`, id).
+		Scan(&del.EndpointID, &del.EventID, &del.Status, &del.Attempts, &del.MaxAttempts, &del.NextRetryAt, &del.CreatedAt, &del.LastResponseCode, &del.LastError)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrDeliveryNotFound
+		}
+
+		return nil, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	return del, nil
+}
+
+func (d *Deliveries) GetFromEvent(ctx context.Context, eventID string) ([]domain.Delivery, error) {
+	const fn = "infrastructure.pg.Deliveries.GetFromEvent"
+
+	rows, err := d.pool.Query(ctx, `
+		SELECT id, endpoint_id, status, attempts, max_attempts, next_retry_at, created_at, last_response_code, last_error
+		FROM deliveries
+		WHERE event_id = $1`, eventID)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	defer rows.Close()
+
+	var results []domain.Delivery
+	for rows.Next() {
+		var r domain.Delivery
+		if err := rows.Scan(&r.ID, &r.EndpointID, &r.Status, &r.Attempts, &r.MaxAttempts, &r.NextRetryAt, &r.CreatedAt, &r.LastResponseCode, &r.LastError); err != nil {
+			return nil, fmt.Errorf("%s: %w", fn, err)
+		}
+
+		results = append(results, r)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	return results, nil
 }
