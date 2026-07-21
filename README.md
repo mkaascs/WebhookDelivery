@@ -84,6 +84,14 @@ All routes are mounted under `/api/v1`. Handlers are documented with swaggo anno
 | `POST` | `/api/v1/events` | Publish an event → fans out to subscribers |
 | `GET` | `/api/v1/events/{id}` | Get an event by id |
 
+### Deliveries
+
+| Method | Path                                | Description                                        |
+|--------|-------------------------------------|----------------------------------------------------|
+| `POST` | `/api/v1/deliveries/{id}/retry`     | Retry delivery even endpoint is inactive right now |
+| `GET`  | `/api/v1/deliveries/{id}` | Get a single delivery                              |
+| `GET`  | `/api/v1/events/{id}/deliveries`    | Deliveries list of current event                   |
+
 ---
 
 ## Delivery Pipeline
