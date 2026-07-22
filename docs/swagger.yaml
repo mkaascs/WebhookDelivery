@@ -1,4 +1,56 @@
 definitions:
+  deliveries.DeliveryInfo:
+    properties:
+      attempts:
+        example: 1
+        type: integer
+      created_at:
+        example: "2026-07-01T12:00:00Z"
+        type: string
+      endpoint_id:
+        example: ep_1a2b3c
+        type: string
+      event_id:
+        example: ev_1a2b3c
+        type: string
+      id:
+        example: del_1a2b3c
+        type: string
+      last_error:
+        description: Error text of the last failed attempt, if any
+        example: HTTP 500
+        type: string
+      last_response_code:
+        description: Status code of the last delivery attempt, if any
+        example: 500
+        type: integer
+      max_attempts:
+        example: 5
+        type: integer
+      next_retry_at:
+        example: "2026-07-01T12:00:00Z"
+        type: string
+      status:
+        description: pending | delivered | failed
+        example: pending
+        type: string
+    type: object
+  deliveries.GetFromEventResponse:
+    properties:
+      deliveries:
+        items:
+          $ref: '#/definitions/deliveries.DeliveryInfo'
+        type: array
+      total:
+        description: Total number of deliveries for the event
+        example: 3
+        type: integer
+    type: object
+  deliveries.GetResponse:
+    properties:
+      delivery:
+        $ref: '#/definitions/deliveries.DeliveryInfo'
+    type: object
   endpoints.EndpointInfo:
     properties:
       created_at:
@@ -275,6 +327,66 @@ info:
   title: Webhook Delivery
   version: 1.0.0
 paths:
+  /deliveries/{id}:
+    get:
+      parameters:
+      - description: Delivery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/deliveries.GetResponse'
+        "400":
+          description: id is not provided
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: delivery not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get a delivery by ID
+      tags:
+      - deliveries
+  /deliveries/{id}/retry:
+    post:
+      description: Resets a delivery to pending and re-queues it for immediate delivery,
+        even if the endpoint is currently inactive.
+      parameters:
+      - description: Delivery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+        "400":
+          description: id is not provided
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: delivery not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Retry a delivery
+      tags:
+      - deliveries
   /endpoints:
     get:
       description: Returns a paginated list of endpoints. Invalid or missing pagination
@@ -561,6 +673,41 @@ paths:
       summary: Get an event by ID
       tags:
       - events
+  /events/{id}/deliveries:
+    get:
+      description: Returns the paginated deliveries created for an event.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Page number (from 1, default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Page size (10-100, default 10)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/deliveries.GetFromEventResponse'
+        "400":
+          description: event id is not provided
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List an event's deliveries
+      tags:
+      - deliveries
   /subscriptions/{id}:
     delete:
       parameters:

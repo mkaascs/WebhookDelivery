@@ -15,7 +15,7 @@ import (
 )
 
 type GetFromEventResponse struct {
-	Total      int            `json:"total"`
+	Total      int            `json:"total" example:"3"` // Total number of deliveries for the event
 	Deliveries []DeliveryInfo `json:"deliveries"`
 }
 
@@ -23,6 +23,19 @@ type AllDeliveriesGetter interface {
 	GetFromEvent(ctx context.Context, command dto.GetDeliveriesFromEventCommand) (*dto.GetDeliveriesFromEventResult, error)
 }
 
+// GetFromEvent godoc
+//
+//	@Summary		List an event's deliveries
+//	@Description	Returns the paginated deliveries created for an event.
+//	@Tags			deliveries
+//	@Produce		json
+//	@Param			id		path		string	true	"Event ID"
+//	@Param			page	query		int		false	"Page number (from 1, default 1)"
+//	@Param			limit	query		int		false	"Page size (10-100, default 10)"
+//	@Success		200		{object}	GetFromEventResponse
+//	@Failure		400		{object}	utils.Response	"event id is not provided"
+//	@Failure		500		{object}	utils.Response
+//	@Router			/events/{id}/deliveries [get]
 func GetFromEvent(getter AllDeliveriesGetter, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		const fn = "handlers.deliveries.GetFromEvent"

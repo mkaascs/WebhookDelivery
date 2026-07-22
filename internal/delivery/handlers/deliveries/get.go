@@ -16,16 +16,16 @@ import (
 )
 
 type DeliveryInfo struct {
-	ID               string    `json:"id"`
-	EndpointID       string    `json:"endpoint_id"`
-	EventID          string    `json:"event_id"`
-	Status           string    `json:"status"`
-	Attempts         int       `json:"attempts"`
-	MaxAttempts      int       `json:"max_attempts"`
-	NextRetryAt      time.Time `json:"next_retry_at"`
-	CreatedAt        time.Time `json:"created_at"`
-	LastResponseCode *int      `json:"last_response_code"`
-	LastError        *string   `json:"last_error"`
+	ID               string    `json:"id" example:"del_1a2b3c"`
+	EndpointID       string    `json:"endpoint_id" example:"ep_1a2b3c"`
+	EventID          string    `json:"event_id" example:"ev_1a2b3c"`
+	Status           string    `json:"status" example:"pending"` // pending | delivered | failed
+	Attempts         int       `json:"attempts" example:"1"`
+	MaxAttempts      int       `json:"max_attempts" example:"5"`
+	NextRetryAt      time.Time `json:"next_retry_at" example:"2026-07-01T12:00:00Z"`
+	CreatedAt        time.Time `json:"created_at" example:"2026-07-01T12:00:00Z"`
+	LastResponseCode *int      `json:"last_response_code" example:"500"` // Status code of the last delivery attempt, if any
+	LastError        *string   `json:"last_error" example:"HTTP 500"`    // Error text of the last failed attempt, if any
 }
 
 type GetResponse struct {
@@ -36,6 +36,17 @@ type DeliveryGetter interface {
 	GetByID(ctx context.Context, id string) (*dto.GetDeliveryResult, error)
 }
 
+// Get godoc
+//
+//	@Summary	Get a delivery by ID
+//	@Tags		deliveries
+//	@Produce	json
+//	@Param		id	path		string	true	"Delivery ID"
+//	@Success	200	{object}	GetResponse
+//	@Failure	400	{object}	utils.Response	"id is not provided"
+//	@Failure	404	{object}	utils.Response	"delivery not found"
+//	@Failure	500	{object}	utils.Response
+//	@Router		/deliveries/{id} [get]
 func Get(getter DeliveryGetter, log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		const fn = "handlers.deliveries.Get"

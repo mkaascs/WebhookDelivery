@@ -15,6 +15,96 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/deliveries/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "deliveries"
+                ],
+                "summary": "Get a delivery by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Delivery ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/deliveries.GetResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "id is not provided",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "delivery not found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/deliveries/{id}/retry": {
+            "post": {
+                "description": "Resets a delivery to pending and re-queues it for immediate delivery, even if the endpoint is currently inactive.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "deliveries"
+                ],
+                "summary": "Retry a delivery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Delivery ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted"
+                    },
+                    "400": {
+                        "description": "id is not provided",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "delivery not found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/endpoints": {
             "get": {
                 "description": "Returns a paginated list of endpoints. Invalid or missing pagination params fall back to defaults.",
@@ -441,6 +531,59 @@ const docTemplate = `{
                 }
             }
         },
+        "/events/{id}/deliveries": {
+            "get": {
+                "description": "Returns the paginated deliveries created for an event.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "deliveries"
+                ],
+                "summary": "List an event's deliveries",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (from 1, default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (10-100, default 10)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/deliveries.GetFromEventResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "event id is not provided",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/subscriptions/{id}": {
             "delete": {
                 "produces": [
@@ -486,6 +629,78 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "deliveries.DeliveryInfo": {
+            "type": "object",
+            "properties": {
+                "attempts": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-07-01T12:00:00Z"
+                },
+                "endpoint_id": {
+                    "type": "string",
+                    "example": "ep_1a2b3c"
+                },
+                "event_id": {
+                    "type": "string",
+                    "example": "ev_1a2b3c"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "del_1a2b3c"
+                },
+                "last_error": {
+                    "description": "Error text of the last failed attempt, if any",
+                    "type": "string",
+                    "example": "HTTP 500"
+                },
+                "last_response_code": {
+                    "description": "Status code of the last delivery attempt, if any",
+                    "type": "integer",
+                    "example": 500
+                },
+                "max_attempts": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "next_retry_at": {
+                    "type": "string",
+                    "example": "2026-07-01T12:00:00Z"
+                },
+                "status": {
+                    "description": "pending | delivered | failed",
+                    "type": "string",
+                    "example": "pending"
+                }
+            }
+        },
+        "deliveries.GetFromEventResponse": {
+            "type": "object",
+            "properties": {
+                "deliveries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/deliveries.DeliveryInfo"
+                    }
+                },
+                "total": {
+                    "description": "Total number of deliveries for the event",
+                    "type": "integer",
+                    "example": 3
+                }
+            }
+        },
+        "deliveries.GetResponse": {
+            "type": "object",
+            "properties": {
+                "delivery": {
+                    "$ref": "#/definitions/deliveries.DeliveryInfo"
+                }
+            }
+        },
         "endpoints.EndpointInfo": {
             "type": "object",
             "properties": {
