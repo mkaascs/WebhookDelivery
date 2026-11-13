@@ -1,0 +1,761 @@
+openapi: 3.0.3
+
+info:
+  title: Webhook Delivery
+  description: An open-source webhook delivery service in Go
+  version: 1.0.0
+
+tags:
+  - name: endpoints
+  - name: subscriptions
+  - name: events
+  - name: deliveries
+
+paths:
+  /endpoints:
+    get:
+      tags: [endpoints]
+      operationId: GetAllEndpoints
+      summary: List endpoints
+      description: Returns a paginated list of endpoints. Invalid or missing pagination params fall back to defaults.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAllEndpointsResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [endpoints]
+      operationId: RegisterEndpoint
+      summary: Register a webhook endpoint
+      description: Registers a receiver URL and returns its generated signing secret. The URL is SSRF-validated (loopback / link-local / localhost are rejected).
+      requestBody:
+        description: Endpoint to register
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterEndpointRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterEndpointResponse'
+        '400':
+          description: invalid url or malformed body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /endpoints/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Endpoint ID
+        schema:
+          type: string
+    get:
+      tags: [endpoints]
+      operationId: GetEndpoint
+      summary: Get an endpoint by ID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetEndpointResponse'
+        '400':
+          description: id is not provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '404':
+          description: endpoint not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags: [endpoints]
+      operationId: UpdateEndpoint
+      summary: Update an endpoint
+      description: Partially updates the URL, active state or description. An empty body is treated as a no-op. If a URL is provided it is SSRF-validated.
+      requestBody:
+        description: Fields to update (all optional)
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEndpointRequest'
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: id is not provided or invalid url
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '404':
+          description: endpoint not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [endpoints]
+      operationId: DeleteEndpoint
+      summary: Delete an endpoint
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: id is not provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '404':
+          description: endpoint not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /endpoints/{id}/subscriptions:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Endpoint ID
+        schema:
+          type: string
+    get:
+      tags: [subscriptions]
+      operationId: GetAllSubscriptions
+      summary: List an endpoint's subscriptions
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAllSubscriptionsResponse'
+        '400':
+          description: id is not provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '404':
+          description: endpoint not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [subscriptions]
+      operationId: Subscribe
+      summary: Subscribe an endpoint to event types
+      description: Adds subscriptions for the given event types. Idempotent — event types the endpoint is already subscribed to are ignored.
+      requestBody:
+        description: Event types to subscribe to
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscribeRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscribeResponse'
+        '400':
+          description: id or event types not provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '404':
+          description: endpoint not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '409':
+          description: subscription already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /subscriptions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Subscription ID
+        schema:
+          type: string
+    delete:
+      tags: [subscriptions]
+      operationId: DeleteSubscription
+      summary: Delete a subscription
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: id is not provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '404':
+          description: subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /events:
+    post:
+      tags: [events]
+      operationId: PublishEvent
+      summary: Publish an event
+      description: Publishes an event and fans it out to subscribed endpoints, creating a pending delivery for each. Returns immediately with the number of deliveries created.
+      requestBody:
+        description: Event to publish
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishEventRequest'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishEventResponse'
+        '400':
+          description: event type is empty or malformed body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /events/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Event ID
+        schema:
+          type: string
+    get:
+      tags: [events]
+      operationId: GetEvent
+      summary: Get an event by ID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetEventResponse'
+        '400':
+          description: id is not provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '404':
+          description: event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /events/{id}/deliveries:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Event ID
+        schema:
+          type: string
+    get:
+      tags: [deliveries]
+      operationId: GetEventDeliveries
+      summary: List an event's deliveries
+      description: Returns the paginated deliveries created for an event.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetEventDeliveriesResponse'
+        '400':
+          description: event id is not provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /deliveries/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Delivery ID
+        schema:
+          type: string
+    get:
+      tags: [deliveries]
+      operationId: GetDelivery
+      summary: Get a delivery by ID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetDeliveryResponse'
+        '400':
+          description: id is not provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '404':
+          description: delivery not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /deliveries/{id}/retry:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Delivery ID
+        schema:
+          type: string
+    post:
+      tags: [deliveries]
+      operationId: RetryDelivery
+      summary: Retry a delivery
+      description: Resets a delivery to pending and re-queues it for immediate delivery, even if the endpoint is currently inactive.
+      responses:
+        '202':
+          description: Accepted
+        '400':
+          description: id is not provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '404':
+          description: delivery not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    Page:
+      name: page
+      in: query
+      required: false
+      description: Page number (from 1, default 1)
+      schema:
+        type: integer
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Page size (10-100, default 10)
+      schema:
+        type: integer
+
+  responses:
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Response'
+
+  schemas:
+    # ---------- common ----------
+    Response:
+      type: object
+      properties:
+        errors:
+          $ref: '#/components/schemas/Errors'
+
+    Errors:
+      type: array
+      description: Error messages, present only on failure responses
+      items:
+        type: string
+      example:
+        - invalid url
+
+    # ---------- endpoints ----------
+    EndpointInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: ep_1a2b3c
+        url:
+          type: string
+          example: https://example.com/webhooks
+        description:
+          type: string
+          example: Billing webhook
+        is_active:
+          type: boolean
+          example: true
+        event_types:
+          type: array
+          items:
+            type: string
+          example:
+            - order.created
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-07-01T12:00:00Z'
+
+    GetAllEndpointsResponse:
+      type: object
+      properties:
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/EndpointInfo'
+        page:
+          type: integer
+          description: Current page (from 1)
+          example: 1
+        limit:
+          type: integer
+          description: Page size
+          example: 10
+        total:
+          type: integer
+          description: Total number of endpoints
+          example: 42
+        errors:
+          $ref: '#/components/schemas/Errors'
+
+    GetEndpointResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: ep_1a2b3c
+        url:
+          type: string
+          example: https://example.com/webhooks
+        description:
+          type: string
+          example: Billing webhook
+        is_active:
+          type: boolean
+          example: true
+        event_types:
+          type: array
+          items:
+            type: string
+          example:
+            - order.created
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-07-01T12:00:00Z'
+        errors:
+          $ref: '#/components/schemas/Errors'
+
+    RegisterEndpointRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          description: Receiver URL (http/https, must not be private)
+          example: https://example.com/webhooks
+        description:
+          type: string
+          description: Optional human-readable description
+          example: Billing webhook
+        event_types:
+          type: array
+          description: Event types to subscribe to on creation
+          items:
+            type: string
+          example:
+            - order.created
+
+    RegisterEndpointResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Generated endpoint ID
+          example: ep_1a2b3c
+        url:
+          type: string
+          description: Receiver URL
+          example: https://example.com/webhooks
+        secret:
+          type: string
+          description: Signing secret (returned once, on creation)
+          example: whsec_3f9a1c2e8d
+        is_active:
+          type: boolean
+          description: Whether the endpoint is active
+          example: true
+        event_types:
+          type: array
+          description: Subscribed event types
+          items:
+            type: string
+          example:
+            - order.created
+        created_at:
+          type: string
+          description: Creation timestamp
+          format: date-time
+          example: '2026-07-01T12:00:00Z'
+        errors:
+          $ref: '#/components/schemas/Errors'
+
+    UpdateEndpointRequest:
+      type: object
+      properties:
+        url:
+          type: string
+          description: New receiver URL (SSRF-validated if present)
+          example: https://example.com/webhooks
+        is_active:
+          type: boolean
+          description: Pause or resume the endpoint
+          example: false
+        description:
+          type: string
+          description: New description
+          example: Billing webhook
+
+    # ---------- subscriptions ----------
+    SubscriptionInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: sub_1a2b3c
+        endpoint_id:
+          type: string
+          example: ep_1a2b3c
+        event_type:
+          type: string
+          example: order.created
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-07-01T12:00:00Z'
+
+    GetAllSubscriptionsResponse:
+      type: object
+      properties:
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionInfo'
+        errors:
+          $ref: '#/components/schemas/Errors'
+
+    SubscribeRequest:
+      type: object
+      required:
+        - event_types
+      properties:
+        event_types:
+          type: array
+          description: Event types to subscribe the endpoint to
+          items:
+            type: string
+          example:
+            - order.created
+
+    SubscribeResponse:
+      type: object
+      properties:
+        endpoint_id:
+          type: string
+          example: ep_1a2b3c
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionInfo'
+        errors:
+          $ref: '#/components/schemas/Errors'
+
+    # ---------- events ----------
+    PublishEventRequest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          description: Event type
+          example: order.created
+        payload:
+          type: object
+          description: Arbitrary JSON payload delivered to subscribers
+          x-go-type: json.RawMessage
+          x-go-type-skip-optional-pointer: true
+
+    PublishEventResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: ev_1a2b3c
+        type:
+          type: string
+          example: order.created
+        deliveries_created:
+          type: integer
+          description: Number of pending deliveries created for subscribers
+          example: 3
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-07-01T12:00:00Z'
+        errors:
+          $ref: '#/components/schemas/Errors'
+
+    GetEventResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: ev_1a2b3c
+        type:
+          type: string
+          example: order.created
+        payload:
+          type: object
+          x-go-type: json.RawMessage
+          x-go-type-skip-optional-pointer: true
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-07-01T12:00:00Z'
+
+    # ---------- deliveries ----------
+    DeliveryInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: del_1a2b3c
+        event_id:
+          type: string
+          example: ev_1a2b3c
+        endpoint_id:
+          type: string
+          example: ep_1a2b3c
+        status:
+          type: string
+          description: pending | delivered | failed
+          example: pending
+        attempts:
+          type: integer
+          example: 1
+        max_attempts:
+          type: integer
+          example: 5
+        last_response_code:
+          type: integer
+          description: Status code of the last delivery attempt, if any
+          example: 500
+        last_error:
+          type: string
+          description: Error text of the last failed attempt, if any
+          example: HTTP 500
+        next_retry_at:
+          type: string
+          format: date-time
+          example: '2026-07-01T12:00:00Z'
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-07-01T12:00:00Z'
+
+    GetDeliveryResponse:
+      type: object
+      properties:
+        delivery:
+          $ref: '#/components/schemas/DeliveryInfo'
+
+    GetEventDeliveriesResponse:
+      type: object
+      properties:
+        deliveries:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeliveryInfo'
+        total:
+          type: integer
+          description: Total number of deliveries for the event
+          example: 3
