@@ -48,7 +48,7 @@ type Workers struct {
 }
 
 type Dispatcher struct {
-	Interval  time.Duration `yaml:"interval" default:"1m"`
+	Interval  time.Duration `yaml:"interval" default:"5s"`
 	BatchSize int           `yaml:"batch_size" default:"25"`
 }
 

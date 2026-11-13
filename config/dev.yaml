@@ -14,5 +14,5 @@ workers:
   max_backoff: 1h
   queue_size: 20
 dispatcher:
-  interval: 1m
+  interval: 4s
   batch_size: 20

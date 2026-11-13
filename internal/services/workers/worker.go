@@ -109,7 +109,7 @@ func (w *Worker) process(ctx context.Context, delivery domain.PendingDelivery) {
 		LastResponseCode: &code,
 	}
 
-	if delivery.Attempts < w.cfg.MaxAttempts {
+	if delivery.Attempts < delivery.MaxAttempts {
 		command.Status = domain.StatusPending
 		command.NextRetryAt = time.Now().Add(w.backoff(delivery.Attempts))
 	}
@@ -163,5 +163,5 @@ func (w *Worker) sendPostRequest(ctx context.Context, url string, payload json.R
 }
 
 func isSuccessCode(httpCode int) bool {
-	return httpCode >= 200 && httpCode < 400
+	return httpCode >= 200 && httpCode < 300
 }
