@@ -83,7 +83,7 @@ func (a *App) MustRun() {
 	go a.workers.Run(a.ctx)
 	go a.dispatcher.Run(a.ctx)
 
-	log.Info("workers and dispatcher is running", slog.Int("workers_count", a.cfg.Workers.MaxGoroutines))
+	log.Info("workers and dispatcher is running", slog.Int("workers_count", a.cfg.MaxGoroutines))
 
 	a.log.Info("http server is running")
 	if err := a.Server.Run(); err != nil && !errors.Is(err, http.ErrServerClosed) {
