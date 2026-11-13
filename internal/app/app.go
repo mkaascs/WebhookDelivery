@@ -22,26 +22,26 @@ import (
 type App struct {
 	Server   *server.Server
 	Postgres *postgres.App
-	Workers  *workers.Service
+	Workers  *workers.Worker
 
 	log *slog.Logger
 }
 
 func New(log *slog.Logger, cfg config.Config) *App {
-	postgresApp, err := postgres.New(log, cfg.DbConfig)
+	postgresApp, err := postgres.New(log, cfg.DB)
 	if err != nil {
 		os.Exit(1)
 	}
 
 	postgresApp.MustConnect()
-	postgres.MustMigrate(log, cfg.DbConfig)
+	postgres.MustMigrate(log, cfg.DB)
 
 	eventRepo := pgRepo.NewEvents(postgresApp.Pool, log)
 	endpointRepo := pgRepo.NewEndpoints(postgresApp.Pool, log)
 	deliveryRepo := pgRepo.NewDeliveries(postgresApp.Pool, log, cfg.MaxAttempts)
 	subscriptionRepo := pgRepo.NewSubscriptions(postgresApp.Pool, log)
 
-	workersService := workers.NewService(deliveryRepo, log, cfg.WorkersConfig)
+	workersService := workers.NewWorkers(deliveryRepo, log, cfg.Workers)
 
 	handler := rest.NewHandler(rest.Services{
 		Deliveries:    deliverySvc.NewService(deliveryRepo, workersService, log),

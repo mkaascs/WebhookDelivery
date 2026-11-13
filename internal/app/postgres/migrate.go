@@ -13,13 +13,13 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-func MustMigrate(log *slog.Logger, cfg config.DbConfig) {
+func MustMigrate(log *slog.Logger, cfg config.DB) {
 	if err := Migrate(log, cfg); err != nil {
 		os.Exit(1)
 	}
 }
 
-func Migrate(log *slog.Logger, cfg config.DbConfig) error {
+func Migrate(log *slog.Logger, cfg config.DB) error {
 	const fn = "app.pg.migrate.Migrate"
 	log = log.With(slog.String("fn", fn))
 

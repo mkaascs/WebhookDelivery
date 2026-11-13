@@ -14,23 +14,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 	"webhook-delivery/internal/config"
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
-func newTestService(t *testing.T, cfg config.WorkersConfig) (*Service, *MockDeliveryRepo) {
+func newTestService(t *testing.T, cfg config.Workers) (*Worker, *MockDeliveryRepo) {
 	ctrl := gomock.NewController(t)
 	repo := NewMockDeliveryRepo(ctrl)
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return NewService(repo, log, cfg), repo
+	return NewWorkers(repo, log, cfg), repo
 }
 
-func testConfig() config.WorkersConfig {
-	return config.WorkersConfig{
+func testConfig() config.Workers {
+	return config.Workers{
 		MaxGoroutines:  1,
 		BatchSize:      10,
 		MaxAttempts:    5,
