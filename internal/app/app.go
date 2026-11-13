@@ -12,19 +12,25 @@ import (
 	"webhook-delivery/internal/delivery/rest"
 	pgRepo "webhook-delivery/internal/infrastructure/pg"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
-	deliverySvc "webhook-delivery/internal/services/deliveries"
-	endpointSvc "webhook-delivery/internal/services/endpoints"
-	eventSvc "webhook-delivery/internal/services/events"
-	subscriptionSvc "webhook-delivery/internal/services/subscriptions"
+	"webhook-delivery/internal/services/deliveries"
+	"webhook-delivery/internal/services/endpoints"
+	"webhook-delivery/internal/services/events"
+	"webhook-delivery/internal/services/subscriptions"
 	"webhook-delivery/internal/services/workers"
 )
 
 type App struct {
 	Server   *server.Server
 	Postgres *postgres.App
-	Workers  *workers.Worker
+
+	workers    *workers.Worker
+	dispatcher *workers.Dispatcher
 
 	log *slog.Logger
+	cfg config.Config
+
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func New(log *slog.Logger, cfg config.Config) *App {
@@ -41,25 +47,43 @@ func New(log *slog.Logger, cfg config.Config) *App {
 	deliveryRepo := pgRepo.NewDeliveries(postgresApp.Pool, log, cfg.MaxAttempts)
 	subscriptionRepo := pgRepo.NewSubscriptions(postgresApp.Pool, log)
 
-	workersService := workers.NewWorkers(deliveryRepo, log, cfg.Workers)
+	worker := workers.NewWorkers(deliveryRepo, cfg.Workers, log)
+	dispatcher := workers.NewDispatcher(worker, deliveryRepo, cfg.Dispatcher, log)
 
 	handler := rest.NewHandler(rest.Services{
-		Deliveries:    deliverySvc.NewService(deliveryRepo, workersService, log),
-		Endpoints:     endpointSvc.NewService(endpointRepo, log),
-		Subscriptions: subscriptionSvc.NewService(subscriptionRepo, log),
-		Events:        eventSvc.NewService(eventRepo, deliveryRepo, workersService, log),
+		Deliveries:    deliveries.NewService(deliveryRepo, log),
+		Endpoints:     endpoints.NewService(endpointRepo, log),
+		Subscriptions: subscriptions.NewService(subscriptionRepo, log),
+		Events:        events.NewService(eventRepo, deliveryRepo, log),
 	})
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &App{
-		Server:   server.New(handler, cfg, log),
-		Postgres: postgresApp,
-		Workers:  workersService,
-		log:      log,
+		Server:     server.New(handler, cfg, log),
+		Postgres:   postgresApp,
+		workers:    worker,
+		dispatcher: dispatcher,
+		log:        log,
+		cfg:        cfg,
+		ctx:        ctx,
+		cancel:     cancel,
 	}
 }
 
 func (a *App) MustRun() {
-	go a.Workers.Run()
+	const fn = "app.App.MustRun"
+	log := a.log.With(slog.String("fn", fn))
+
+	if err := a.dispatcher.Recover(a.ctx); err != nil {
+		log.Error("failed to recover deliveries", sloglib.Error(err))
+		os.Exit(1)
+	}
+
+	go a.workers.Run(a.ctx)
+	go a.dispatcher.Run(a.ctx)
+
+	log.Info("workers and dispatcher is running", slog.Int("workers_count", a.cfg.Workers.MaxGoroutines))
 
 	a.log.Info("http server is running")
 	if err := a.Server.Run(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -69,10 +93,11 @@ func (a *App) MustRun() {
 }
 
 func (a *App) Shutdown(ctx context.Context) {
+	a.cancel()
+
 	if err := a.Server.Shutdown(ctx); err != nil {
 		a.log.Error("failed to shutdown http server", sloglib.Error(err))
 	}
 
-	a.Workers.Shutdown()
 	a.Postgres.Close()
 }

@@ -11,12 +11,12 @@ import (
 )
 
 type DispatcherRepo interface {
-	ClaimPending(ctx context.Context, limit int) ([]*domain.PendingDelivery, error)
+	ClaimPending(ctx context.Context, limit int) ([]domain.PendingDelivery, error)
 	RecoverProcessing(ctx context.Context) error
 }
 
 type Queue interface {
-	Enqueue(delivery *domain.PendingDelivery)
+	Enqueue(delivery domain.PendingDelivery)
 	FreeSlots() int
 }
 

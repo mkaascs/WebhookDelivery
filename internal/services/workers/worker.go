@@ -32,7 +32,7 @@ type Worker struct {
 	cfg config.Workers
 
 	wg    sync.WaitGroup
-	queue chan *domain.PendingDelivery
+	queue chan domain.PendingDelivery
 }
 
 func NewWorkers(repo DeliveryRepo, cfg config.Workers, log *slog.Logger) *Worker {
@@ -42,7 +42,7 @@ func NewWorkers(repo DeliveryRepo, cfg config.Workers, log *slog.Logger) *Worker
 		log:          log,
 		cfg:          cfg,
 		wg:           sync.WaitGroup{},
-		queue:        make(chan *domain.PendingDelivery, cfg.QueueSize),
+		queue:        make(chan domain.PendingDelivery, cfg.QueueSize),
 	}
 }
 
@@ -63,7 +63,7 @@ func (w *Worker) Run(ctx context.Context) {
 	w.wg.Wait()
 }
 
-func (w *Worker) Enqueue(delivery *domain.PendingDelivery) {
+func (w *Worker) Enqueue(delivery domain.PendingDelivery) {
 	w.queue <- delivery
 }
 
@@ -71,7 +71,7 @@ func (w *Worker) FreeSlots() int {
 	return cap(w.queue) - len(w.queue)
 }
 
-func (w *Worker) process(ctx context.Context, delivery *domain.PendingDelivery) {
+func (w *Worker) process(ctx context.Context, delivery domain.PendingDelivery) {
 	const fn = "services.workers.Worker.process"
 	log := w.log.With(slog.String("fn", fn))
 

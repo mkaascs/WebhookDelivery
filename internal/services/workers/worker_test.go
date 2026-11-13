@@ -46,8 +46,8 @@ func testWorkersConfig() config.Workers {
 	}
 }
 
-func newPendingDelivery(url string, attempts int) *domain.PendingDelivery {
-	return &domain.PendingDelivery{
+func newPendingDelivery(url string, attempts int) domain.PendingDelivery {
+	return domain.PendingDelivery{
 		Delivery: domain.Delivery{
 			ID:          deliveryID,
 			Status:      domain.StatusProcessing,

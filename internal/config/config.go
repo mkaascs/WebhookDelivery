@@ -40,11 +40,9 @@ type DB struct {
 
 type Workers struct {
 	MaxGoroutines  int           `yaml:"max_goroutines" default:"5"`
-	BatchSize      int           `yaml:"batch_size" default:"10"`
 	MaxAttempts    int           `yaml:"max_attempts" default:"5"`
 	BaseBackoff    time.Duration `yaml:"base_backoff" default:"10s"`
 	MaxBackoff     time.Duration `yaml:"max_backoff" default:"1h"`
-	TickerDuration time.Duration `yaml:"ticker_duration" default:"30s"`
 	Timeout        time.Duration `yaml:"timeout" default:"10s"`
 	QueueSize      int           `yaml:"queue_size" default:"25"`
 }

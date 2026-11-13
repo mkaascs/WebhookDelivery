@@ -42,10 +42,10 @@ func (m *MockDispatcherRepo) EXPECT() *MockDispatcherRepoMockRecorder {
 }
 
 // ClaimPending mocks base method.
-func (m *MockDispatcherRepo) ClaimPending(ctx context.Context, limit int) ([]*domain.PendingDelivery, error) {
+func (m *MockDispatcherRepo) ClaimPending(ctx context.Context, limit int) ([]domain.PendingDelivery, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ClaimPending", ctx, limit)
-	ret0, _ := ret[0].([]*domain.PendingDelivery)
+	ret0, _ := ret[0].([]domain.PendingDelivery)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -95,7 +95,7 @@ func (m *MockQueue) EXPECT() *MockQueueMockRecorder {
 }
 
 // Enqueue mocks base method.
-func (m *MockQueue) Enqueue(delivery *domain.PendingDelivery) {
+func (m *MockQueue) Enqueue(delivery domain.PendingDelivery) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "Enqueue", delivery)
 }

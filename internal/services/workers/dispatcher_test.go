@@ -25,15 +25,15 @@ func newTestDispatcher(t *testing.T, cfg config.Dispatcher) (*Dispatcher, *MockQ
 }
 
 func Test_dispatch(t *testing.T) {
-	first := &domain.PendingDelivery{Delivery: domain.Delivery{ID: uuid.MustParse("01900000-0000-7000-8000-000000000001")}}
-	second := &domain.PendingDelivery{Delivery: domain.Delivery{ID: uuid.MustParse("01900000-0000-7000-8000-000000000002")}}
+	first := domain.PendingDelivery{Delivery: domain.Delivery{ID: uuid.MustParse("01900000-0000-7000-8000-000000000001")}}
+	second := domain.PendingDelivery{Delivery: domain.Delivery{ID: uuid.MustParse("01900000-0000-7000-8000-000000000002")}}
 
 	tests := []struct {
 		name      string
 		batchSize int
 		freeSlots int
 		wantLimit int
-		claimed   []*domain.PendingDelivery
+		claimed   []domain.PendingDelivery
 		claimErr  error
 	}{
 		{
@@ -41,14 +41,14 @@ func Test_dispatch(t *testing.T) {
 			batchSize: 10,
 			freeSlots: 25,
 			wantLimit: 10,
-			claimed:   []*domain.PendingDelivery{first, second},
+			claimed:   []domain.PendingDelivery{first, second},
 		},
 		{
 			name:      "limit is capped by free queue slots",
 			batchSize: 10,
 			freeSlots: 3,
 			wantLimit: 3,
-			claimed:   []*domain.PendingDelivery{first},
+			claimed:   []domain.PendingDelivery{first},
 		},
 		{
 			name:      "nothing to claim",
