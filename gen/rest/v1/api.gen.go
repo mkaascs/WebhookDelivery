@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -22,22 +23,46 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for DeliveryInfoStatus.
+const (
+	Delivered  DeliveryInfoStatus = "delivered"
+	Failed     DeliveryInfoStatus = "failed"
+	Pending    DeliveryInfoStatus = "pending"
+	Processing DeliveryInfoStatus = "processing"
+)
+
+// Valid indicates whether the value is a known member of the DeliveryInfoStatus enum.
+func (e DeliveryInfoStatus) Valid() bool {
+	switch e {
+	case Delivered:
+		return true
+	case Failed:
+		return true
+	case Pending:
+		return true
+	case Processing:
+		return true
+	default:
+		return false
+	}
+}
+
 // DeliveryInfo defines model for DeliveryInfo.
 type DeliveryInfo struct {
 	// Attempts Example: 1
-	Attempts *int `json:"attempts,omitempty"`
+	Attempts int `json:"attempts"`
 
 	// CreatedAt Example: 2026-07-01T12:00:00Z
-	CreatedAt *time.Time `json:"created_at,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 
 	// EndpointId Example: ep_1a2b3c
-	EndpointId *string `json:"endpoint_id,omitempty"`
+	EndpointId string `json:"endpoint_id"`
 
 	// EventId Example: ev_1a2b3c
-	EventId *string `json:"event_id,omitempty"`
+	EventId string `json:"event_id"`
 
 	// Id Example: del_1a2b3c
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// LastError Error text of the last failed attempt, if any
 	//
@@ -50,129 +75,106 @@ type DeliveryInfo struct {
 	LastResponseCode *int `json:"last_response_code,omitempty"`
 
 	// MaxAttempts Example: 5
-	MaxAttempts *int `json:"max_attempts,omitempty"`
+	MaxAttempts int `json:"max_attempts"`
 
 	// NextRetryAt Example: 2026-07-01T12:00:00Z
-	NextRetryAt *time.Time `json:"next_retry_at,omitempty"`
+	NextRetryAt time.Time `json:"next_retry_at"`
 
-	// Status pending | delivered | failed
-	//
-	// Example: pending
-	Status *string `json:"status,omitempty"`
+	// Status Example: pending
+	Status DeliveryInfoStatus `json:"status"`
 }
+
+// DeliveryInfoStatus Example: pending
+type DeliveryInfoStatus string
 
 // EndpointInfo defines model for EndpointInfo.
 type EndpointInfo struct {
 	// CreatedAt Example: 2026-07-01T12:00:00Z
-	CreatedAt *time.Time `json:"created_at,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 
 	// Description Example: Billing webhook
-	Description *string `json:"description,omitempty"`
+	Description string `json:"description"`
 
 	// EventTypes Example: ["order.created"]
-	EventTypes *[]string `json:"event_types,omitempty"`
+	EventTypes []string `json:"event_types"`
 
 	// Id Example: ep_1a2b3c
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// IsActive Example: true
-	IsActive *bool `json:"is_active,omitempty"`
+	IsActive bool `json:"is_active"`
 
 	// Url Example: https://example.com/webhooks
-	Url *string `json:"url,omitempty"`
+	Url string `json:"url"`
 }
 
-// Errors Error messages, present only on failure responses
-//
-// Example: ["invalid url"]
-type Errors = []string
+// Error defines model for Error.
+type Error struct {
+	// Code Machine-readable error code
+	//
+	// Example: invalid_url
+	Code *string `json:"code,omitempty"`
+
+	// Message Human-readable error message
+	//
+	// Example: invalid url
+	Message string `json:"message"`
+}
 
 // GetAllEndpointsResponse defines model for GetAllEndpointsResponse.
 type GetAllEndpointsResponse struct {
-	Endpoints *[]EndpointInfo `json:"endpoints,omitempty"`
-
-	// Errors Error messages, present only on failure responses
-	//
-	// Example: ["invalid url"]
-	Errors *Errors `json:"errors,omitempty"`
+	Endpoints []EndpointInfo `json:"endpoints"`
 
 	// Limit Page size
 	//
 	// Example: 10
-	Limit *int `json:"limit,omitempty"`
+	Limit int `json:"limit"`
 
 	// Page Current page (from 1)
 	//
 	// Example: 1
-	Page *int `json:"page,omitempty"`
+	Page int `json:"page"`
 
 	// Total Total number of endpoints
 	//
 	// Example: 42
-	Total *int `json:"total,omitempty"`
+	Total int `json:"total"`
 }
 
 // GetAllSubscriptionsResponse defines model for GetAllSubscriptionsResponse.
 type GetAllSubscriptionsResponse struct {
-	// Errors Error messages, present only on failure responses
-	//
-	// Example: ["invalid url"]
-	Errors        *Errors             `json:"errors,omitempty"`
-	Subscriptions *[]SubscriptionInfo `json:"subscriptions,omitempty"`
+	Subscriptions []SubscriptionInfo `json:"subscriptions"`
 }
 
 // GetDeliveryResponse defines model for GetDeliveryResponse.
 type GetDeliveryResponse struct {
-	Delivery *DeliveryInfo `json:"delivery,omitempty"`
+	Delivery DeliveryInfo `json:"delivery"`
 }
 
 // GetEndpointResponse defines model for GetEndpointResponse.
-type GetEndpointResponse struct {
-	// CreatedAt Example: 2026-07-01T12:00:00Z
-	CreatedAt *time.Time `json:"created_at,omitempty"`
-
-	// Description Example: Billing webhook
-	Description *string `json:"description,omitempty"`
-
-	// Errors Error messages, present only on failure responses
-	//
-	// Example: ["invalid url"]
-	Errors *Errors `json:"errors,omitempty"`
-
-	// EventTypes Example: ["order.created"]
-	EventTypes *[]string `json:"event_types,omitempty"`
-
-	// Id Example: ep_1a2b3c
-	Id *string `json:"id,omitempty"`
-
-	// IsActive Example: true
-	IsActive *bool `json:"is_active,omitempty"`
-
-	// Url Example: https://example.com/webhooks
-	Url *string `json:"url,omitempty"`
-}
+type GetEndpointResponse = EndpointInfo
 
 // GetEventDeliveriesResponse defines model for GetEventDeliveriesResponse.
 type GetEventDeliveriesResponse struct {
-	Deliveries *[]DeliveryInfo `json:"deliveries,omitempty"`
+	Deliveries []DeliveryInfo `json:"deliveries"`
 
 	// Total Total number of deliveries for the event
 	//
 	// Example: 3
-	Total *int `json:"total,omitempty"`
+	Total int `json:"total"`
 }
 
 // GetEventResponse defines model for GetEventResponse.
 type GetEventResponse struct {
 	// CreatedAt Example: 2026-07-01T12:00:00Z
-	CreatedAt *time.Time `json:"created_at,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 
 	// Id Example: ev_1a2b3c
-	Id      *string         `json:"id,omitempty"`
-	Payload json.RawMessage `json:"payload,omitempty"`
+	Id      string          `json:"id"`
+	Payload json.RawMessage `json:"payload"`
 
 	// Type Example: order.created
-	Type *string `json:"type,omitempty"`
+	Type string `json:"type"`
 }
 
 // PublishEventRequest defines model for PublishEventRequest.
@@ -189,23 +191,18 @@ type PublishEventRequest struct {
 // PublishEventResponse defines model for PublishEventResponse.
 type PublishEventResponse struct {
 	// CreatedAt Example: 2026-07-01T12:00:00Z
-	CreatedAt *time.Time `json:"created_at,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 
 	// DeliveriesCreated Number of pending deliveries created for subscribers
 	//
 	// Example: 3
-	DeliveriesCreated *int `json:"deliveries_created,omitempty"`
-
-	// Errors Error messages, present only on failure responses
-	//
-	// Example: ["invalid url"]
-	Errors *Errors `json:"errors,omitempty"`
+	DeliveriesCreated int `json:"deliveries_created"`
 
 	// Id Example: ev_1a2b3c
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// Type Example: order.created
-	Type *string `json:"type,omitempty"`
+	Type string `json:"type"`
 }
 
 // RegisterEndpointRequest defines model for RegisterEndpointRequest.
@@ -231,45 +228,32 @@ type RegisterEndpointResponse struct {
 	// CreatedAt Creation timestamp
 	//
 	// Example: 2026-07-01T12:00:00Z
-	CreatedAt *time.Time `json:"created_at,omitempty"`
-
-	// Errors Error messages, present only on failure responses
-	//
-	// Example: ["invalid url"]
-	Errors *Errors `json:"errors,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 
 	// EventTypes Subscribed event types
 	//
 	// Example: ["order.created"]
-	EventTypes *[]string `json:"event_types,omitempty"`
+	EventTypes []string `json:"event_types"`
 
 	// Id Generated endpoint ID
 	//
 	// Example: ep_1a2b3c
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	// IsActive Whether the endpoint is active
 	//
 	// Example: true
-	IsActive *bool `json:"is_active,omitempty"`
+	IsActive bool `json:"is_active"`
 
 	// Secret Signing secret (returned once, on creation)
 	//
 	// Example: whsec_3f9a1c2e8d
-	Secret *string `json:"secret,omitempty"`
+	Secret string `json:"secret"`
 
 	// Url Receiver URL
 	//
 	// Example: https://example.com/webhooks
-	Url *string `json:"url,omitempty"`
-}
-
-// Response defines model for Response.
-type Response struct {
-	// Errors Error messages, present only on failure responses
-	//
-	// Example: ["invalid url"]
-	Errors *Errors `json:"errors,omitempty"`
+	Url string `json:"url"`
 }
 
 // SubscribeRequest defines model for SubscribeRequest.
@@ -283,28 +267,23 @@ type SubscribeRequest struct {
 // SubscribeResponse defines model for SubscribeResponse.
 type SubscribeResponse struct {
 	// EndpointId Example: ep_1a2b3c
-	EndpointId *string `json:"endpoint_id,omitempty"`
-
-	// Errors Error messages, present only on failure responses
-	//
-	// Example: ["invalid url"]
-	Errors        *Errors             `json:"errors,omitempty"`
-	Subscriptions *[]SubscriptionInfo `json:"subscriptions,omitempty"`
+	EndpointId    string             `json:"endpoint_id"`
+	Subscriptions []SubscriptionInfo `json:"subscriptions"`
 }
 
 // SubscriptionInfo defines model for SubscriptionInfo.
 type SubscriptionInfo struct {
 	// CreatedAt Example: 2026-07-01T12:00:00Z
-	CreatedAt *time.Time `json:"created_at,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 
 	// EndpointId Example: ep_1a2b3c
-	EndpointId *string `json:"endpoint_id,omitempty"`
+	EndpointId string `json:"endpoint_id"`
 
 	// EventType Example: order.created
-	EventType *string `json:"event_type,omitempty"`
+	EventType string `json:"event_type"`
 
 	// Id Example: sub_1a2b3c
-	Id *string `json:"id,omitempty"`
+	Id string `json:"id"`
 }
 
 // UpdateEndpointRequest defines model for UpdateEndpointRequest.
@@ -325,21 +304,27 @@ type UpdateEndpointRequest struct {
 	Url *string `json:"url,omitempty"`
 }
 
+// DeliveryID defines model for DeliveryID.
+type DeliveryID = string
+
+// EndpointID defines model for EndpointID.
+type EndpointID = string
+
+// EventID defines model for EventID.
+type EventID = string
+
 // Limit defines model for Limit.
 type Limit = int
 
 // Page defines model for Page.
 type Page = int
 
-// InternalServerError defines model for InternalServerError.
-type InternalServerError = Response
-
 // GetAllEndpointsParams defines parameters for GetAllEndpoints.
 type GetAllEndpointsParams struct {
 	// Page Page number (from 1, default 1)
 	Page *Page `form:"page,omitempty" json:"page,omitempty"`
 
-	// Limit Page size (10-100, default 10)
+	// Limit Page size (1-100, default 10)
 	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
@@ -348,7 +333,7 @@ type GetEventDeliveriesParams struct {
 	// Page Page number (from 1, default 1)
 	Page *Page `form:"page,omitempty" json:"page,omitempty"`
 
-	// Limit Page size (10-100, default 10)
+	// Limit Page size (1-100, default 10)
 	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
@@ -368,10 +353,10 @@ type PublishEventJSONRequestBody = PublishEventRequest
 type ServerInterface interface {
 	// GetDelivery Get a delivery by ID
 	// (GET /deliveries/{id})
-	GetDelivery(w http.ResponseWriter, r *http.Request, id string)
+	GetDelivery(w http.ResponseWriter, r *http.Request, id DeliveryID)
 	// RetryDelivery Retry a delivery
 	// (POST /deliveries/{id}/retry)
-	RetryDelivery(w http.ResponseWriter, r *http.Request, id string)
+	RetryDelivery(w http.ResponseWriter, r *http.Request, id DeliveryID)
 	// GetAllEndpoints List endpoints
 	// (GET /endpoints)
 	GetAllEndpoints(w http.ResponseWriter, r *http.Request, params GetAllEndpointsParams)
@@ -380,28 +365,28 @@ type ServerInterface interface {
 	RegisterEndpoint(w http.ResponseWriter, r *http.Request)
 	// DeleteEndpoint Delete an endpoint
 	// (DELETE /endpoints/{id})
-	DeleteEndpoint(w http.ResponseWriter, r *http.Request, id string)
+	DeleteEndpoint(w http.ResponseWriter, r *http.Request, id EndpointID)
 	// GetEndpoint Get an endpoint by ID
 	// (GET /endpoints/{id})
-	GetEndpoint(w http.ResponseWriter, r *http.Request, id string)
+	GetEndpoint(w http.ResponseWriter, r *http.Request, id EndpointID)
 	// UpdateEndpoint Update an endpoint
 	// (PATCH /endpoints/{id})
-	UpdateEndpoint(w http.ResponseWriter, r *http.Request, id string)
+	UpdateEndpoint(w http.ResponseWriter, r *http.Request, id EndpointID)
 	// GetAllSubscriptions List an endpoint's subscriptions
 	// (GET /endpoints/{id}/subscriptions)
-	GetAllSubscriptions(w http.ResponseWriter, r *http.Request, id string)
+	GetAllSubscriptions(w http.ResponseWriter, r *http.Request, id EndpointID)
 	// Subscribe Subscribe an endpoint to event types
 	// (POST /endpoints/{id}/subscriptions)
-	Subscribe(w http.ResponseWriter, r *http.Request, id string)
+	Subscribe(w http.ResponseWriter, r *http.Request, id EndpointID)
 	// PublishEvent Publish an event
 	// (POST /events)
 	PublishEvent(w http.ResponseWriter, r *http.Request)
 	// GetEvent Get an event by ID
 	// (GET /events/{id})
-	GetEvent(w http.ResponseWriter, r *http.Request, id string)
+	GetEvent(w http.ResponseWriter, r *http.Request, id EventID)
 	// GetEventDeliveries List an event's deliveries
 	// (GET /events/{id}/deliveries)
-	GetEventDeliveries(w http.ResponseWriter, r *http.Request, id string, params GetEventDeliveriesParams)
+	GetEventDeliveries(w http.ResponseWriter, r *http.Request, id EventID, params GetEventDeliveriesParams)
 	// DeleteSubscription Delete a subscription
 	// (DELETE /subscriptions/{id})
 	DeleteSubscription(w http.ResponseWriter, r *http.Request, id string)
@@ -413,13 +398,13 @@ type Unimplemented struct{}
 
 // GetDelivery Get a delivery by ID
 // (GET /deliveries/{id})
-func (_ Unimplemented) GetDelivery(w http.ResponseWriter, r *http.Request, id string) {
+func (_ Unimplemented) GetDelivery(w http.ResponseWriter, r *http.Request, id DeliveryID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // RetryDelivery Retry a delivery
 // (POST /deliveries/{id}/retry)
-func (_ Unimplemented) RetryDelivery(w http.ResponseWriter, r *http.Request, id string) {
+func (_ Unimplemented) RetryDelivery(w http.ResponseWriter, r *http.Request, id DeliveryID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -437,31 +422,31 @@ func (_ Unimplemented) RegisterEndpoint(w http.ResponseWriter, r *http.Request) 
 
 // DeleteEndpoint Delete an endpoint
 // (DELETE /endpoints/{id})
-func (_ Unimplemented) DeleteEndpoint(w http.ResponseWriter, r *http.Request, id string) {
+func (_ Unimplemented) DeleteEndpoint(w http.ResponseWriter, r *http.Request, id EndpointID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // GetEndpoint Get an endpoint by ID
 // (GET /endpoints/{id})
-func (_ Unimplemented) GetEndpoint(w http.ResponseWriter, r *http.Request, id string) {
+func (_ Unimplemented) GetEndpoint(w http.ResponseWriter, r *http.Request, id EndpointID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // UpdateEndpoint Update an endpoint
 // (PATCH /endpoints/{id})
-func (_ Unimplemented) UpdateEndpoint(w http.ResponseWriter, r *http.Request, id string) {
+func (_ Unimplemented) UpdateEndpoint(w http.ResponseWriter, r *http.Request, id EndpointID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // GetAllSubscriptions List an endpoint's subscriptions
 // (GET /endpoints/{id}/subscriptions)
-func (_ Unimplemented) GetAllSubscriptions(w http.ResponseWriter, r *http.Request, id string) {
+func (_ Unimplemented) GetAllSubscriptions(w http.ResponseWriter, r *http.Request, id EndpointID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Subscribe Subscribe an endpoint to event types
 // (POST /endpoints/{id}/subscriptions)
-func (_ Unimplemented) Subscribe(w http.ResponseWriter, r *http.Request, id string) {
+func (_ Unimplemented) Subscribe(w http.ResponseWriter, r *http.Request, id EndpointID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -473,13 +458,13 @@ func (_ Unimplemented) PublishEvent(w http.ResponseWriter, r *http.Request) {
 
 // GetEvent Get an event by ID
 // (GET /events/{id})
-func (_ Unimplemented) GetEvent(w http.ResponseWriter, r *http.Request, id string) {
+func (_ Unimplemented) GetEvent(w http.ResponseWriter, r *http.Request, id EventID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // GetEventDeliveries List an event's deliveries
 // (GET /events/{id}/deliveries)
-func (_ Unimplemented) GetEventDeliveries(w http.ResponseWriter, r *http.Request, id string, params GetEventDeliveriesParams) {
+func (_ Unimplemented) GetEventDeliveries(w http.ResponseWriter, r *http.Request, id EventID, params GetEventDeliveriesParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -505,7 +490,7 @@ func (siw *ServerInterfaceWrapper) GetDelivery(w http.ResponseWriter, r *http.Re
 	_ = err
 
 	// ------------- Path parameter "id" -------------
-	var id string
+	var id DeliveryID
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
 	if err != nil {
@@ -531,7 +516,7 @@ func (siw *ServerInterfaceWrapper) RetryDelivery(w http.ResponseWriter, r *http.
 	_ = err
 
 	// ------------- Path parameter "id" -------------
-	var id string
+	var id DeliveryID
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
 	if err != nil {
@@ -617,7 +602,7 @@ func (siw *ServerInterfaceWrapper) DeleteEndpoint(w http.ResponseWriter, r *http
 	_ = err
 
 	// ------------- Path parameter "id" -------------
-	var id string
+	var id EndpointID
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
 	if err != nil {
@@ -643,7 +628,7 @@ func (siw *ServerInterfaceWrapper) GetEndpoint(w http.ResponseWriter, r *http.Re
 	_ = err
 
 	// ------------- Path parameter "id" -------------
-	var id string
+	var id EndpointID
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
 	if err != nil {
@@ -669,7 +654,7 @@ func (siw *ServerInterfaceWrapper) UpdateEndpoint(w http.ResponseWriter, r *http
 	_ = err
 
 	// ------------- Path parameter "id" -------------
-	var id string
+	var id EndpointID
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
 	if err != nil {
@@ -695,7 +680,7 @@ func (siw *ServerInterfaceWrapper) GetAllSubscriptions(w http.ResponseWriter, r 
 	_ = err
 
 	// ------------- Path parameter "id" -------------
-	var id string
+	var id EndpointID
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
 	if err != nil {
@@ -721,7 +706,7 @@ func (siw *ServerInterfaceWrapper) Subscribe(w http.ResponseWriter, r *http.Requ
 	_ = err
 
 	// ------------- Path parameter "id" -------------
-	var id string
+	var id EndpointID
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
 	if err != nil {
@@ -761,7 +746,7 @@ func (siw *ServerInterfaceWrapper) GetEvent(w http.ResponseWriter, r *http.Reque
 	_ = err
 
 	// ------------- Path parameter "id" -------------
-	var id string
+	var id EventID
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
 	if err != nil {
@@ -787,7 +772,7 @@ func (siw *ServerInterfaceWrapper) GetEventDeliveries(w http.ResponseWriter, r *
 	_ = err
 
 	// ------------- Path parameter "id" -------------
-	var id string
+	var id EventID
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
 	if err != nil {
@@ -1017,10 +1002,8 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	return r
 }
 
-type InternalServerErrorJSONResponse Response
-
 type GetDeliveryRequestObject struct {
-	Id string `json:"id"`
+	Id DeliveryID `json:"id"`
 }
 
 type GetDeliveryResponseObject interface {
@@ -1041,21 +1024,7 @@ func (response GetDelivery200JSONResponse) VisitGetDeliveryResponse(w http.Respo
 	return err
 }
 
-type GetDelivery400JSONResponse Response
-
-func (response GetDelivery400JSONResponse) VisitGetDeliveryResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetDelivery404JSONResponse Response
+type GetDelivery404JSONResponse Error
 
 func (response GetDelivery404JSONResponse) VisitGetDeliveryResponse(w http.ResponseWriter) error {
 
@@ -1069,9 +1038,7 @@ func (response GetDelivery404JSONResponse) VisitGetDeliveryResponse(w http.Respo
 	return err
 }
 
-type GetDelivery500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
+type GetDelivery500JSONResponse Error
 
 func (response GetDelivery500JSONResponse) VisitGetDeliveryResponse(w http.ResponseWriter) error {
 
@@ -1086,7 +1053,7 @@ func (response GetDelivery500JSONResponse) VisitGetDeliveryResponse(w http.Respo
 }
 
 type RetryDeliveryRequestObject struct {
-	Id string `json:"id"`
+	Id DeliveryID `json:"id"`
 }
 
 type RetryDeliveryResponseObject interface {
@@ -1101,21 +1068,7 @@ func (response RetryDelivery202Response) VisitRetryDeliveryResponse(w http.Respo
 	return nil
 }
 
-type RetryDelivery400JSONResponse Response
-
-func (response RetryDelivery400JSONResponse) VisitRetryDeliveryResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type RetryDelivery404JSONResponse Response
+type RetryDelivery404JSONResponse Error
 
 func (response RetryDelivery404JSONResponse) VisitRetryDeliveryResponse(w http.ResponseWriter) error {
 
@@ -1129,9 +1082,7 @@ func (response RetryDelivery404JSONResponse) VisitRetryDeliveryResponse(w http.R
 	return err
 }
 
-type RetryDelivery500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
+type RetryDelivery500JSONResponse Error
 
 func (response RetryDelivery500JSONResponse) VisitRetryDeliveryResponse(w http.ResponseWriter) error {
 
@@ -1167,9 +1118,21 @@ func (response GetAllEndpoints200JSONResponse) VisitGetAllEndpointsResponse(w ht
 	return err
 }
 
-type GetAllEndpoints500JSONResponse struct {
-	InternalServerErrorJSONResponse
+type GetAllEndpoints400JSONResponse Error
+
+func (response GetAllEndpoints400JSONResponse) VisitGetAllEndpointsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
 }
+
+type GetAllEndpoints500JSONResponse Error
 
 func (response GetAllEndpoints500JSONResponse) VisitGetAllEndpointsResponse(w http.ResponseWriter) error {
 
@@ -1205,7 +1168,7 @@ func (response RegisterEndpoint200JSONResponse) VisitRegisterEndpointResponse(w 
 	return err
 }
 
-type RegisterEndpoint400JSONResponse Response
+type RegisterEndpoint400JSONResponse Error
 
 func (response RegisterEndpoint400JSONResponse) VisitRegisterEndpointResponse(w http.ResponseWriter) error {
 
@@ -1219,9 +1182,7 @@ func (response RegisterEndpoint400JSONResponse) VisitRegisterEndpointResponse(w 
 	return err
 }
 
-type RegisterEndpoint500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
+type RegisterEndpoint500JSONResponse Error
 
 func (response RegisterEndpoint500JSONResponse) VisitRegisterEndpointResponse(w http.ResponseWriter) error {
 
@@ -1236,7 +1197,7 @@ func (response RegisterEndpoint500JSONResponse) VisitRegisterEndpointResponse(w 
 }
 
 type DeleteEndpointRequestObject struct {
-	Id string `json:"id"`
+	Id EndpointID `json:"id"`
 }
 
 type DeleteEndpointResponseObject interface {
@@ -1251,21 +1212,7 @@ func (response DeleteEndpoint204Response) VisitDeleteEndpointResponse(w http.Res
 	return nil
 }
 
-type DeleteEndpoint400JSONResponse Response
-
-func (response DeleteEndpoint400JSONResponse) VisitDeleteEndpointResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type DeleteEndpoint404JSONResponse Response
+type DeleteEndpoint404JSONResponse Error
 
 func (response DeleteEndpoint404JSONResponse) VisitDeleteEndpointResponse(w http.ResponseWriter) error {
 
@@ -1279,9 +1226,7 @@ func (response DeleteEndpoint404JSONResponse) VisitDeleteEndpointResponse(w http
 	return err
 }
 
-type DeleteEndpoint500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
+type DeleteEndpoint500JSONResponse Error
 
 func (response DeleteEndpoint500JSONResponse) VisitDeleteEndpointResponse(w http.ResponseWriter) error {
 
@@ -1296,7 +1241,7 @@ func (response DeleteEndpoint500JSONResponse) VisitDeleteEndpointResponse(w http
 }
 
 type GetEndpointRequestObject struct {
-	Id string `json:"id"`
+	Id EndpointID `json:"id"`
 }
 
 type GetEndpointResponseObject interface {
@@ -1317,21 +1262,7 @@ func (response GetEndpoint200JSONResponse) VisitGetEndpointResponse(w http.Respo
 	return err
 }
 
-type GetEndpoint400JSONResponse Response
-
-func (response GetEndpoint400JSONResponse) VisitGetEndpointResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetEndpoint404JSONResponse Response
+type GetEndpoint404JSONResponse Error
 
 func (response GetEndpoint404JSONResponse) VisitGetEndpointResponse(w http.ResponseWriter) error {
 
@@ -1345,9 +1276,7 @@ func (response GetEndpoint404JSONResponse) VisitGetEndpointResponse(w http.Respo
 	return err
 }
 
-type GetEndpoint500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
+type GetEndpoint500JSONResponse Error
 
 func (response GetEndpoint500JSONResponse) VisitGetEndpointResponse(w http.ResponseWriter) error {
 
@@ -1362,7 +1291,7 @@ func (response GetEndpoint500JSONResponse) VisitGetEndpointResponse(w http.Respo
 }
 
 type UpdateEndpointRequestObject struct {
-	Id   string `json:"id"`
+	Id   EndpointID `json:"id"`
 	Body *UpdateEndpointJSONRequestBody
 }
 
@@ -1378,7 +1307,7 @@ func (response UpdateEndpoint204Response) VisitUpdateEndpointResponse(w http.Res
 	return nil
 }
 
-type UpdateEndpoint400JSONResponse Response
+type UpdateEndpoint400JSONResponse Error
 
 func (response UpdateEndpoint400JSONResponse) VisitUpdateEndpointResponse(w http.ResponseWriter) error {
 
@@ -1392,7 +1321,7 @@ func (response UpdateEndpoint400JSONResponse) VisitUpdateEndpointResponse(w http
 	return err
 }
 
-type UpdateEndpoint404JSONResponse Response
+type UpdateEndpoint404JSONResponse Error
 
 func (response UpdateEndpoint404JSONResponse) VisitUpdateEndpointResponse(w http.ResponseWriter) error {
 
@@ -1406,9 +1335,7 @@ func (response UpdateEndpoint404JSONResponse) VisitUpdateEndpointResponse(w http
 	return err
 }
 
-type UpdateEndpoint500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
+type UpdateEndpoint500JSONResponse Error
 
 func (response UpdateEndpoint500JSONResponse) VisitUpdateEndpointResponse(w http.ResponseWriter) error {
 
@@ -1423,7 +1350,7 @@ func (response UpdateEndpoint500JSONResponse) VisitUpdateEndpointResponse(w http
 }
 
 type GetAllSubscriptionsRequestObject struct {
-	Id string `json:"id"`
+	Id EndpointID `json:"id"`
 }
 
 type GetAllSubscriptionsResponseObject interface {
@@ -1444,21 +1371,7 @@ func (response GetAllSubscriptions200JSONResponse) VisitGetAllSubscriptionsRespo
 	return err
 }
 
-type GetAllSubscriptions400JSONResponse Response
-
-func (response GetAllSubscriptions400JSONResponse) VisitGetAllSubscriptionsResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetAllSubscriptions404JSONResponse Response
+type GetAllSubscriptions404JSONResponse Error
 
 func (response GetAllSubscriptions404JSONResponse) VisitGetAllSubscriptionsResponse(w http.ResponseWriter) error {
 
@@ -1472,9 +1385,7 @@ func (response GetAllSubscriptions404JSONResponse) VisitGetAllSubscriptionsRespo
 	return err
 }
 
-type GetAllSubscriptions500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
+type GetAllSubscriptions500JSONResponse Error
 
 func (response GetAllSubscriptions500JSONResponse) VisitGetAllSubscriptionsResponse(w http.ResponseWriter) error {
 
@@ -1489,7 +1400,7 @@ func (response GetAllSubscriptions500JSONResponse) VisitGetAllSubscriptionsRespo
 }
 
 type SubscribeRequestObject struct {
-	Id   string `json:"id"`
+	Id   EndpointID `json:"id"`
 	Body *SubscribeJSONRequestBody
 }
 
@@ -1511,7 +1422,7 @@ func (response Subscribe200JSONResponse) VisitSubscribeResponse(w http.ResponseW
 	return err
 }
 
-type Subscribe400JSONResponse Response
+type Subscribe400JSONResponse Error
 
 func (response Subscribe400JSONResponse) VisitSubscribeResponse(w http.ResponseWriter) error {
 
@@ -1525,7 +1436,7 @@ func (response Subscribe400JSONResponse) VisitSubscribeResponse(w http.ResponseW
 	return err
 }
 
-type Subscribe404JSONResponse Response
+type Subscribe404JSONResponse Error
 
 func (response Subscribe404JSONResponse) VisitSubscribeResponse(w http.ResponseWriter) error {
 
@@ -1539,7 +1450,7 @@ func (response Subscribe404JSONResponse) VisitSubscribeResponse(w http.ResponseW
 	return err
 }
 
-type Subscribe409JSONResponse Response
+type Subscribe409JSONResponse Error
 
 func (response Subscribe409JSONResponse) VisitSubscribeResponse(w http.ResponseWriter) error {
 
@@ -1553,9 +1464,7 @@ func (response Subscribe409JSONResponse) VisitSubscribeResponse(w http.ResponseW
 	return err
 }
 
-type Subscribe500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
+type Subscribe500JSONResponse Error
 
 func (response Subscribe500JSONResponse) VisitSubscribeResponse(w http.ResponseWriter) error {
 
@@ -1591,7 +1500,7 @@ func (response PublishEvent202JSONResponse) VisitPublishEventResponse(w http.Res
 	return err
 }
 
-type PublishEvent400JSONResponse Response
+type PublishEvent400JSONResponse Error
 
 func (response PublishEvent400JSONResponse) VisitPublishEventResponse(w http.ResponseWriter) error {
 
@@ -1605,9 +1514,7 @@ func (response PublishEvent400JSONResponse) VisitPublishEventResponse(w http.Res
 	return err
 }
 
-type PublishEvent500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
+type PublishEvent500JSONResponse Error
 
 func (response PublishEvent500JSONResponse) VisitPublishEventResponse(w http.ResponseWriter) error {
 
@@ -1622,7 +1529,7 @@ func (response PublishEvent500JSONResponse) VisitPublishEventResponse(w http.Res
 }
 
 type GetEventRequestObject struct {
-	Id string `json:"id"`
+	Id EventID `json:"id"`
 }
 
 type GetEventResponseObject interface {
@@ -1643,21 +1550,7 @@ func (response GetEvent200JSONResponse) VisitGetEventResponse(w http.ResponseWri
 	return err
 }
 
-type GetEvent400JSONResponse Response
-
-func (response GetEvent400JSONResponse) VisitGetEventResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetEvent404JSONResponse Response
+type GetEvent404JSONResponse Error
 
 func (response GetEvent404JSONResponse) VisitGetEventResponse(w http.ResponseWriter) error {
 
@@ -1671,9 +1564,7 @@ func (response GetEvent404JSONResponse) VisitGetEventResponse(w http.ResponseWri
 	return err
 }
 
-type GetEvent500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
+type GetEvent500JSONResponse Error
 
 func (response GetEvent500JSONResponse) VisitGetEventResponse(w http.ResponseWriter) error {
 
@@ -1688,7 +1579,7 @@ func (response GetEvent500JSONResponse) VisitGetEventResponse(w http.ResponseWri
 }
 
 type GetEventDeliveriesRequestObject struct {
-	Id     string `json:"id"`
+	Id     EventID `json:"id"`
 	Params GetEventDeliveriesParams
 }
 
@@ -1710,7 +1601,7 @@ func (response GetEventDeliveries200JSONResponse) VisitGetEventDeliveriesRespons
 	return err
 }
 
-type GetEventDeliveries400JSONResponse Response
+type GetEventDeliveries400JSONResponse Error
 
 func (response GetEventDeliveries400JSONResponse) VisitGetEventDeliveriesResponse(w http.ResponseWriter) error {
 
@@ -1724,9 +1615,7 @@ func (response GetEventDeliveries400JSONResponse) VisitGetEventDeliveriesRespons
 	return err
 }
 
-type GetEventDeliveries500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
+type GetEventDeliveries500JSONResponse Error
 
 func (response GetEventDeliveries500JSONResponse) VisitGetEventDeliveriesResponse(w http.ResponseWriter) error {
 
@@ -1756,21 +1645,7 @@ func (response DeleteSubscription204Response) VisitDeleteSubscriptionResponse(w 
 	return nil
 }
 
-type DeleteSubscription400JSONResponse Response
-
-func (response DeleteSubscription400JSONResponse) VisitDeleteSubscriptionResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type DeleteSubscription404JSONResponse Response
+type DeleteSubscription404JSONResponse Error
 
 func (response DeleteSubscription404JSONResponse) VisitDeleteSubscriptionResponse(w http.ResponseWriter) error {
 
@@ -1784,9 +1659,7 @@ func (response DeleteSubscription404JSONResponse) VisitDeleteSubscriptionRespons
 	return err
 }
 
-type DeleteSubscription500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
+type DeleteSubscription500JSONResponse Error
 
 func (response DeleteSubscription500JSONResponse) VisitDeleteSubscriptionResponse(w http.ResponseWriter) error {
 
@@ -1883,7 +1756,7 @@ type strictHandler struct {
 }
 
 // GetDelivery operation middleware
-func (sh *strictHandler) GetDelivery(w http.ResponseWriter, r *http.Request, id string) {
+func (sh *strictHandler) GetDelivery(w http.ResponseWriter, r *http.Request, id DeliveryID) {
 	var request GetDeliveryRequestObject
 
 	request.Id = id
@@ -1909,7 +1782,7 @@ func (sh *strictHandler) GetDelivery(w http.ResponseWriter, r *http.Request, id 
 }
 
 // RetryDelivery operation middleware
-func (sh *strictHandler) RetryDelivery(w http.ResponseWriter, r *http.Request, id string) {
+func (sh *strictHandler) RetryDelivery(w http.ResponseWriter, r *http.Request, id DeliveryID) {
 	var request RetryDeliveryRequestObject
 
 	request.Id = id
@@ -1992,7 +1865,7 @@ func (sh *strictHandler) RegisterEndpoint(w http.ResponseWriter, r *http.Request
 }
 
 // DeleteEndpoint operation middleware
-func (sh *strictHandler) DeleteEndpoint(w http.ResponseWriter, r *http.Request, id string) {
+func (sh *strictHandler) DeleteEndpoint(w http.ResponseWriter, r *http.Request, id EndpointID) {
 	var request DeleteEndpointRequestObject
 
 	request.Id = id
@@ -2018,7 +1891,7 @@ func (sh *strictHandler) DeleteEndpoint(w http.ResponseWriter, r *http.Request, 
 }
 
 // GetEndpoint operation middleware
-func (sh *strictHandler) GetEndpoint(w http.ResponseWriter, r *http.Request, id string) {
+func (sh *strictHandler) GetEndpoint(w http.ResponseWriter, r *http.Request, id EndpointID) {
 	var request GetEndpointRequestObject
 
 	request.Id = id
@@ -2044,17 +1917,20 @@ func (sh *strictHandler) GetEndpoint(w http.ResponseWriter, r *http.Request, id 
 }
 
 // UpdateEndpoint operation middleware
-func (sh *strictHandler) UpdateEndpoint(w http.ResponseWriter, r *http.Request, id string) {
+func (sh *strictHandler) UpdateEndpoint(w http.ResponseWriter, r *http.Request, id EndpointID) {
 	var request UpdateEndpointRequestObject
 
 	request.Id = id
 
 	var body UpdateEndpointJSONRequestBody
 	if err := runtime.BindJSONBody(r, &body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
+		if !errors.Is(err, io.EOF) {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+			return
+		}
+	} else {
+		request.Body = &body
 	}
-	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.UpdateEndpoint(ctx, request.(UpdateEndpointRequestObject))
@@ -2077,7 +1953,7 @@ func (sh *strictHandler) UpdateEndpoint(w http.ResponseWriter, r *http.Request, 
 }
 
 // GetAllSubscriptions operation middleware
-func (sh *strictHandler) GetAllSubscriptions(w http.ResponseWriter, r *http.Request, id string) {
+func (sh *strictHandler) GetAllSubscriptions(w http.ResponseWriter, r *http.Request, id EndpointID) {
 	var request GetAllSubscriptionsRequestObject
 
 	request.Id = id
@@ -2103,7 +1979,7 @@ func (sh *strictHandler) GetAllSubscriptions(w http.ResponseWriter, r *http.Requ
 }
 
 // Subscribe operation middleware
-func (sh *strictHandler) Subscribe(w http.ResponseWriter, r *http.Request, id string) {
+func (sh *strictHandler) Subscribe(w http.ResponseWriter, r *http.Request, id EndpointID) {
 	var request SubscribeRequestObject
 
 	request.Id = id
@@ -2167,7 +2043,7 @@ func (sh *strictHandler) PublishEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetEvent operation middleware
-func (sh *strictHandler) GetEvent(w http.ResponseWriter, r *http.Request, id string) {
+func (sh *strictHandler) GetEvent(w http.ResponseWriter, r *http.Request, id EventID) {
 	var request GetEventRequestObject
 
 	request.Id = id
@@ -2193,7 +2069,7 @@ func (sh *strictHandler) GetEvent(w http.ResponseWriter, r *http.Request, id str
 }
 
 // GetEventDeliveries operation middleware
-func (sh *strictHandler) GetEventDeliveries(w http.ResponseWriter, r *http.Request, id string, params GetEventDeliveriesParams) {
+func (sh *strictHandler) GetEventDeliveries(w http.ResponseWriter, r *http.Request, id EventID, params GetEventDeliveriesParams) {
 	var request GetEventDeliveriesRequestObject
 
 	request.Id = id
@@ -2250,48 +2126,49 @@ func (sh *strictHandler) DeleteSubscription(w http.ResponseWriter, r *http.Reque
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"Yy83b2/+FwAA//8=",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

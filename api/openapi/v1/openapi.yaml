@@ -17,7 +17,7 @@ paths:
       tags: [endpoints]
       operationId: GetAllEndpoints
       summary: List endpoints
-      description: Returns a paginated list of endpoints. Invalid or missing pagination params fall back to defaults.
+      description: Returns a paginated list of endpoints. Missing pagination params fall back to defaults.
       parameters:
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/Limit'
@@ -28,8 +28,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetAllEndpointsResponse'
+        '400':
+          description: invalid pagination params
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     post:
       tags: [endpoints]
       operationId: RegisterEndpoint
@@ -54,18 +64,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response'
+                $ref: '#/components/schemas/Error'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /endpoints/{id}:
     parameters:
-      - name: id
-        in: path
-        required: true
-        description: Endpoint ID
-        schema:
-          type: string
+      - $ref: '#/components/parameters/EndpointID'
     get:
       tags: [endpoints]
       operationId: GetEndpoint
@@ -77,20 +86,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetEndpointResponse'
-        '400':
-          description: id is not provided
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Response'
         '404':
           description: endpoint not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response'
+                $ref: '#/components/schemas/Error'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     patch:
       tags: [endpoints]
       operationId: UpdateEndpoint
@@ -98,7 +105,7 @@ paths:
       description: Partially updates the URL, active state or description. An empty body is treated as a no-op. If a URL is provided it is SSRF-validated.
       requestBody:
         description: Fields to update (all optional)
-        required: true
+        required: false
         content:
           application/json:
             schema:
@@ -107,19 +114,23 @@ paths:
         '204':
           description: No Content
         '400':
-          description: id is not provided or invalid url
+          description: invalid url or malformed body
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response'
+                $ref: '#/components/schemas/Error'
         '404':
           description: endpoint not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response'
+                $ref: '#/components/schemas/Error'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     delete:
       tags: [endpoints]
       operationId: DeleteEndpoint
@@ -127,29 +138,22 @@ paths:
       responses:
         '204':
           description: No Content
-        '400':
-          description: id is not provided
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Response'
         '404':
           description: endpoint not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response'
+                $ref: '#/components/schemas/Error'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /endpoints/{id}/subscriptions:
     parameters:
-      - name: id
-        in: path
-        required: true
-        description: Endpoint ID
-        schema:
-          type: string
+      - $ref: '#/components/parameters/EndpointID'
     get:
       tags: [subscriptions]
       operationId: GetAllSubscriptions
@@ -161,20 +165,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetAllSubscriptionsResponse'
-        '400':
-          description: id is not provided
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Response'
         '404':
           description: endpoint not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response'
+                $ref: '#/components/schemas/Error'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     post:
       tags: [subscriptions]
       operationId: Subscribe
@@ -195,25 +197,29 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubscribeResponse'
         '400':
-          description: id or event types not provided
+          description: event types not provided or malformed body
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response'
+                $ref: '#/components/schemas/Error'
         '404':
           description: endpoint not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response'
+                $ref: '#/components/schemas/Error'
         '409':
           description: subscription already exists
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response'
+                $ref: '#/components/schemas/Error'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /subscriptions/{id}:
     parameters:
@@ -223,6 +229,7 @@ paths:
         description: Subscription ID
         schema:
           type: string
+          minLength: 1
     delete:
       tags: [subscriptions]
       operationId: DeleteSubscription
@@ -230,20 +237,18 @@ paths:
       responses:
         '204':
           description: No Content
-        '400':
-          description: id is not provided
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Response'
         '404':
           description: subscription not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response'
+                $ref: '#/components/schemas/Error'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /events:
     post:
@@ -270,18 +275,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response'
+                $ref: '#/components/schemas/Error'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /events/{id}:
     parameters:
-      - name: id
-        in: path
-        required: true
-        description: Event ID
-        schema:
-          type: string
+      - $ref: '#/components/parameters/EventID'
     get:
       tags: [events]
       operationId: GetEvent
@@ -293,29 +297,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetEventResponse'
-        '400':
-          description: id is not provided
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Response'
         '404':
           description: event not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response'
+                $ref: '#/components/schemas/Error'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /events/{id}/deliveries:
     parameters:
-      - name: id
-        in: path
-        required: true
-        description: Event ID
-        schema:
-          type: string
+      - $ref: '#/components/parameters/EventID'
     get:
       tags: [deliveries]
       operationId: GetEventDeliveries
@@ -332,22 +329,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/GetEventDeliveriesResponse'
         '400':
-          description: event id is not provided
+          description: invalid pagination params
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response'
+                $ref: '#/components/schemas/Error'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /deliveries/{id}:
     parameters:
-      - name: id
-        in: path
-        required: true
-        description: Delivery ID
-        schema:
-          type: string
+      - $ref: '#/components/parameters/DeliveryID'
     get:
       tags: [deliveries]
       operationId: GetDelivery
@@ -359,29 +355,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetDeliveryResponse'
-        '400':
-          description: id is not provided
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Response'
         '404':
           description: delivery not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response'
+                $ref: '#/components/schemas/Error'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /deliveries/{id}/retry:
     parameters:
-      - name: id
-        in: path
-        required: true
-        description: Delivery ID
-        schema:
-          type: string
+      - $ref: '#/components/parameters/DeliveryID'
     post:
       tags: [deliveries]
       operationId: RetryDelivery
@@ -390,20 +379,18 @@ paths:
       responses:
         '202':
           description: Accepted
-        '400':
-          description: id is not provided
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Response'
         '404':
           description: delivery not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response'
+                $ref: '#/components/schemas/Error'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
 components:
   parameters:
@@ -414,41 +401,69 @@ components:
       description: Page number (from 1, default 1)
       schema:
         type: integer
+        minimum: 1
+        default: 1
     Limit:
       name: limit
       in: query
       required: false
-      description: Page size (10-100, default 10)
+      description: Page size (1-100, default 10)
       schema:
         type: integer
-
-  responses:
-    InternalServerError:
-      description: Internal Server Error
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Response'
+        minimum: 1
+        maximum: 100
+        default: 10
+    EndpointID:
+      name: id
+      in: path
+      required: true
+      description: Endpoint ID
+      schema:
+        type: string
+        minLength: 1
+    EventID:
+      name: id
+      in: path
+      required: true
+      description: Event ID
+      schema:
+        type: string
+        minLength: 1
+    DeliveryID:
+      name: id
+      in: path
+      required: true
+      description: Delivery ID
+      schema:
+        type: string
+        minLength: 1
 
   schemas:
     # ---------- common ----------
-    Response:
+    Error:
       type: object
+      required:
+        - message
       properties:
-        errors:
-          $ref: '#/components/schemas/Errors'
-
-    Errors:
-      type: array
-      description: Error messages, present only on failure responses
-      items:
-        type: string
-      example:
-        - invalid url
+        code:
+          type: string
+          description: Machine-readable error code
+          example: invalid_url
+        message:
+          type: string
+          description: Human-readable error message
+          example: invalid url
 
     # ---------- endpoints ----------
     EndpointInfo:
       type: object
+      required:
+        - id
+        - url
+        - description
+        - is_active
+        - event_types
+        - created_at
       properties:
         id:
           type: string
@@ -475,6 +490,11 @@ components:
 
     GetAllEndpointsResponse:
       type: object
+      required:
+        - endpoints
+        - page
+        - limit
+        - total
       properties:
         endpoints:
           type: array
@@ -492,36 +512,9 @@ components:
           type: integer
           description: Total number of endpoints
           example: 42
-        errors:
-          $ref: '#/components/schemas/Errors'
 
     GetEndpointResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          example: ep_1a2b3c
-        url:
-          type: string
-          example: https://example.com/webhooks
-        description:
-          type: string
-          example: Billing webhook
-        is_active:
-          type: boolean
-          example: true
-        event_types:
-          type: array
-          items:
-            type: string
-          example:
-            - order.created
-        created_at:
-          type: string
-          format: date-time
-          example: '2026-07-01T12:00:00Z'
-        errors:
-          $ref: '#/components/schemas/Errors'
+      $ref: '#/components/schemas/EndpointInfo'
 
     RegisterEndpointRequest:
       type: object
@@ -530,6 +523,7 @@ components:
       properties:
         url:
           type: string
+          minLength: 1
           description: Receiver URL (http/https, must not be private)
           example: https://example.com/webhooks
         description:
@@ -541,11 +535,19 @@ components:
           description: Event types to subscribe to on creation
           items:
             type: string
+            minLength: 1
           example:
             - order.created
 
     RegisterEndpointResponse:
       type: object
+      required:
+        - id
+        - url
+        - secret
+        - is_active
+        - event_types
+        - created_at
       properties:
         id:
           type: string
@@ -575,14 +577,13 @@ components:
           description: Creation timestamp
           format: date-time
           example: '2026-07-01T12:00:00Z'
-        errors:
-          $ref: '#/components/schemas/Errors'
 
     UpdateEndpointRequest:
       type: object
       properties:
         url:
           type: string
+          minLength: 1
           description: New receiver URL (SSRF-validated if present)
           example: https://example.com/webhooks
         is_active:
@@ -597,6 +598,11 @@ components:
     # ---------- subscriptions ----------
     SubscriptionInfo:
       type: object
+      required:
+        - id
+        - endpoint_id
+        - event_type
+        - created_at
       properties:
         id:
           type: string
@@ -614,13 +620,13 @@ components:
 
     GetAllSubscriptionsResponse:
       type: object
+      required:
+        - subscriptions
       properties:
         subscriptions:
           type: array
           items:
             $ref: '#/components/schemas/SubscriptionInfo'
-        errors:
-          $ref: '#/components/schemas/Errors'
 
     SubscribeRequest:
       type: object
@@ -629,14 +635,19 @@ components:
       properties:
         event_types:
           type: array
+          minItems: 1
           description: Event types to subscribe the endpoint to
           items:
             type: string
+            minLength: 1
           example:
             - order.created
 
     SubscribeResponse:
       type: object
+      required:
+        - endpoint_id
+        - subscriptions
       properties:
         endpoint_id:
           type: string
@@ -645,8 +656,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SubscriptionInfo'
-        errors:
-          $ref: '#/components/schemas/Errors'
 
     # ---------- events ----------
     PublishEventRequest:
@@ -656,6 +665,7 @@ components:
       properties:
         type:
           type: string
+          minLength: 1
           description: Event type
           example: order.created
         payload:
@@ -666,6 +676,11 @@ components:
 
     PublishEventResponse:
       type: object
+      required:
+        - id
+        - type
+        - deliveries_created
+        - created_at
       properties:
         id:
           type: string
@@ -681,11 +696,14 @@ components:
           type: string
           format: date-time
           example: '2026-07-01T12:00:00Z'
-        errors:
-          $ref: '#/components/schemas/Errors'
 
     GetEventResponse:
       type: object
+      required:
+        - id
+        - type
+        - payload
+        - created_at
       properties:
         id:
           type: string
@@ -705,6 +723,15 @@ components:
     # ---------- deliveries ----------
     DeliveryInfo:
       type: object
+      required:
+        - id
+        - event_id
+        - endpoint_id
+        - status
+        - attempts
+        - max_attempts
+        - next_retry_at
+        - created_at
       properties:
         id:
           type: string
@@ -717,7 +744,7 @@ components:
           example: ep_1a2b3c
         status:
           type: string
-          description: pending | delivered | failed
+          enum: [pending, processing, delivered, failed]
           example: pending
         attempts:
           type: integer
@@ -744,12 +771,17 @@ components:
 
     GetDeliveryResponse:
       type: object
+      required:
+        - delivery
       properties:
         delivery:
           $ref: '#/components/schemas/DeliveryInfo'
 
     GetEventDeliveriesResponse:
       type: object
+      required:
+        - deliveries
+        - total
       properties:
         deliveries:
           type: array
