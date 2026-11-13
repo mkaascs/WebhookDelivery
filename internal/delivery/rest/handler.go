@@ -33,8 +33,6 @@ type Handler struct {
 	*eventsHandler
 }
 
-var _ apiv1.StrictServerInterface = (*Handler)(nil)
-
 func NewHandler(services Services) apiv1.ServerInterface {
 	handler := &Handler{
 		deliveriesHandler:    deliveries.NewHandler(services.Deliveries),
@@ -47,6 +45,7 @@ func NewHandler(services Services) apiv1.ServerInterface {
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
 			writeError(w, http.StatusBadRequest, apiv1.Error{Code: new("invalid_request"), Message: err.Error()})
 		},
+
 		ResponseErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, _ error) {
 			writeError(w, http.StatusInternalServerError, common.InternalError())
 		},

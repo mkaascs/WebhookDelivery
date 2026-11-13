@@ -5,6 +5,9 @@ info:
   description: An open-source webhook delivery service in Go
   version: 1.0.0
 
+servers:
+  - url: /api/v1
+
 tags:
   - name: endpoints
   - name: subscriptions

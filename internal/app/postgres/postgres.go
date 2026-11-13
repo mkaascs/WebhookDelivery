@@ -1,4 +1,4 @@
-package pg
+package postgres
 
 import (
 	"context"
@@ -67,6 +67,6 @@ func (a *App) Close() {
 }
 
 func GetConnectionString(cfg config.DbConfig) string {
-	return fmt.Sprintf("postgres://%s:%s@%s/hookrelay?sslmode=disable",
-		cfg.User, cfg.Password, cfg.Addr)
+	return fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
+		cfg.User, cfg.Password, cfg.Addr, cfg.DB)
 }
