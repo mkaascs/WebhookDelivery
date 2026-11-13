@@ -32,6 +32,7 @@ type HttpConfig struct {
 type DbConfig struct {
 	Addr              string        `yaml:"addr" required:"true"`
 	User              string        `yaml:"-" env:"DB_USERNAME" env-required:"true"`
+	DB                string        `yaml:"-" env:"DB_NAME" required:"true"`
 	Password          string        `yaml:"-" env:"DB_PASSWORD" env-required:"true"`
 	ConnectionTimeout time.Duration `yaml:"connection_timeout" default:"5s"`
 }
