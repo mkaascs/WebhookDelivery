@@ -17,19 +17,20 @@ const (
 )
 
 type Config struct {
-	Env           string `yaml:"env" default:"local"`
-	DbConfig      `yaml:"db"`
-	HttpConfig    `yaml:"http_server"`
-	WorkersConfig `yaml:"workers"`
+	Env        string `yaml:"env" default:"local"`
+	DB         `yaml:"db"`
+	HTTP       `yaml:"http_server"`
+	Workers    `yaml:"workers"`
+	Dispatcher `yaml:"dispatcher"`
 }
 
-type HttpConfig struct {
+type HTTP struct {
 	Port         int           `yaml:"port" default:"8080"`
 	WriteTimeout time.Duration `yaml:"write_timeout" default:"5s"`
 	ReadTimeout  time.Duration `yaml:"read_timeout" default:"10s"`
 }
 
-type DbConfig struct {
+type DB struct {
 	Addr              string        `yaml:"addr" required:"true"`
 	User              string        `yaml:"-" env:"DB_USERNAME" env-required:"true"`
 	DB                string        `yaml:"-" env:"DB_NAME" required:"true"`
@@ -37,14 +38,18 @@ type DbConfig struct {
 	ConnectionTimeout time.Duration `yaml:"connection_timeout" default:"5s"`
 }
 
-type WorkersConfig struct {
+type Workers struct {
 	MaxGoroutines  int           `yaml:"max_goroutines" default:"5"`
-	BatchSize      int           `yaml:"batch_size" default:"10"`
 	MaxAttempts    int           `yaml:"max_attempts" default:"5"`
 	BaseBackoff    time.Duration `yaml:"base_backoff" default:"10s"`
 	MaxBackoff     time.Duration `yaml:"max_backoff" default:"1h"`
-	TickerDuration time.Duration `yaml:"ticker_duration" default:"30s"`
 	Timeout        time.Duration `yaml:"timeout" default:"10s"`
+	QueueSize      int           `yaml:"queue_size" default:"25"`
+}
+
+type Dispatcher struct {
+	Interval  time.Duration `yaml:"interval" default:"5s"`
+	BatchSize int           `yaml:"batch_size" default:"25"`
 }
 
 func MustLoad() *Config {

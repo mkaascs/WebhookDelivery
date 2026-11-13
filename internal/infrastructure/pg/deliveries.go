@@ -72,12 +72,12 @@ func (d *Deliveries) CreateForEvent(ctx context.Context, eventID uuid.UUID, even
 	return int(res.RowsAffected()), nil
 }
 
-func (d *Deliveries) ClaimPending(ctx context.Context, batchSize int) ([]domain.PendingDelivery, error) {
+func (d *Deliveries) ClaimPending(ctx context.Context, limit int) ([]domain.PendingDelivery, error) {
 	const fn = "infrastructure.pg.Deliveries.ClaimPending"
 
 	rows, err := d.pool.Query(ctx, `
 		UPDATE deliveries d
-		SET status = 'processing'
+		SET status = 'queued'
 		FROM events ev, endpoints e
 		WHERE ev.id = d.event_id
 		    AND e.id = d.endpoint_id
@@ -87,11 +87,10 @@ func (d *Deliveries) ClaimPending(ctx context.Context, batchSize int) ([]domain.
 		    	WHERE status = 'pending' AND next_retry_at <= now()
 		    	ORDER BY next_retry_at
 		    	LIMIT $1
-		    	FOR UPDATE SKIP LOCKED
 		    )
 		RETURNING d.id, d.endpoint_id, d.event_id, d.status, d.attempts, d.max_attempts, d.next_retry_at, d.created_at,
 		    d.last_response_code, d.last_error, e.url, e.secret, ev.payload`,
-		batchSize)
+		limit)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", fn, err)
@@ -116,6 +115,17 @@ func (d *Deliveries) ClaimPending(ctx context.Context, batchSize int) ([]domain.
 	}
 
 	return results, nil
+}
+
+func (d *Deliveries) RecoverProcessing(ctx context.Context) error {
+	const fn = "infrastructure.pg.Deliveries.RecoverProcessing"
+
+	_, err := d.pool.Exec(ctx, `UPDATE deliveries SET status = 'pending' WHERE status IN ('queued', 'processing')`)
+	if err != nil {
+		return fmt.Errorf("%s: %w", fn, err)
+	}
+
+	return nil
 }
 
 func (d *Deliveries) UpdateStatus(ctx context.Context, command dto.UpdateDeliveryStatusCommand) error {

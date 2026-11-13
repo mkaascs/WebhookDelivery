@@ -15,10 +15,10 @@ type App struct {
 	Pool *pgxpool.Pool
 
 	log *slog.Logger
-	cfg config.DbConfig
+	cfg config.DB
 }
 
-func New(log *slog.Logger, cfg config.DbConfig) (*App, error) {
+func New(log *slog.Logger, cfg config.DB) (*App, error) {
 	const fn = "app.pg.App.New"
 	log = log.With(slog.String("fn", fn))
 
@@ -66,7 +66,7 @@ func (a *App) Close() {
 	a.Pool.Close()
 }
 
-func GetConnectionString(cfg config.DbConfig) string {
+func GetConnectionString(cfg config.DB) string {
 	return fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
 		cfg.User, cfg.Password, cfg.Addr, cfg.DB)
 }

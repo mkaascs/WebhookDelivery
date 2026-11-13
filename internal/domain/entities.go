@@ -14,6 +14,7 @@ const (
 	StatusPending    DeliveryStatus = "pending"
 	StatusFailed     DeliveryStatus = "failed"
 	StatusProcessing DeliveryStatus = "processing"
+	StatusQueued     DeliveryStatus = "queued"
 )
 
 type Endpoint struct {
