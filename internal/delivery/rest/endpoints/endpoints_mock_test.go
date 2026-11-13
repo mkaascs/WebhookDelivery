@@ -12,8 +12,10 @@ package endpoints
 import (
 	context "context"
 	reflect "reflect"
+	domain "webhook-delivery/internal/domain"
 	dto "webhook-delivery/internal/domain/dto"
 
+	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -42,7 +44,7 @@ func (m *MockInterface) EXPECT() *MockInterfaceMockRecorder {
 }
 
 // Delete mocks base method.
-func (m *MockInterface) Delete(ctx context.Context, id string) error {
+func (m *MockInterface) Delete(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", ctx, id)
 	ret0, _ := ret[0].(error)
@@ -56,12 +58,13 @@ func (mr *MockInterfaceMockRecorder) Delete(ctx, id any) *gomock.Call {
 }
 
 // GetAll mocks base method.
-func (m *MockInterface) GetAll(ctx context.Context, command dto.GetAllEndpointsCommand) (*dto.GetAllEndpointsResult, error) {
+func (m *MockInterface) GetAll(ctx context.Context, command dto.GetAllEndpointsCommand) ([]domain.Endpoint, int, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAll", ctx, command)
-	ret0, _ := ret[0].(*dto.GetAllEndpointsResult)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].([]domain.Endpoint)
+	ret1, _ := ret[1].(int)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // GetAll indicates an expected call of GetAll.
@@ -71,10 +74,10 @@ func (mr *MockInterfaceMockRecorder) GetAll(ctx, command any) *gomock.Call {
 }
 
 // GetByID mocks base method.
-func (m *MockInterface) GetByID(ctx context.Context, id string) (*dto.GetEndpointResult, error) {
+func (m *MockInterface) GetByID(ctx context.Context, id uuid.UUID) (*domain.Endpoint, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByID", ctx, id)
-	ret0, _ := ret[0].(*dto.GetEndpointResult)
+	ret0, _ := ret[0].(*domain.Endpoint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -86,10 +89,10 @@ func (mr *MockInterfaceMockRecorder) GetByID(ctx, id any) *gomock.Call {
 }
 
 // Register mocks base method.
-func (m *MockInterface) Register(ctx context.Context, command dto.RegisterEndpointCommand) (*dto.RegisterEndpointResult, error) {
+func (m *MockInterface) Register(ctx context.Context, command dto.RegisterEndpointCommand) (*domain.Endpoint, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Register", ctx, command)
-	ret0, _ := ret[0].(*dto.RegisterEndpointResult)
+	ret0, _ := ret[0].(*domain.Endpoint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

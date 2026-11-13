@@ -13,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	v5 "github.com/jackc/pgx/v5"
+	pgx "github.com/jackc/pgx/v5"
 	pgconn "github.com/jackc/pgx/v5/pgconn"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -63,14 +63,14 @@ func (mr *MockpoolQueryMockRecorder) Exec(ctx, sql any, args ...any) *gomock.Cal
 }
 
 // Query mocks base method.
-func (m *MockpoolQuery) Query(ctx context.Context, sql string, args ...any) (v5.Rows, error) {
+func (m *MockpoolQuery) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, sql}
 	for _, a := range args {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Query", varargs...)
-	ret0, _ := ret[0].(v5.Rows)
+	ret0, _ := ret[0].(pgx.Rows)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -83,14 +83,14 @@ func (mr *MockpoolQueryMockRecorder) Query(ctx, sql any, args ...any) *gomock.Ca
 }
 
 // QueryRow mocks base method.
-func (m *MockpoolQuery) QueryRow(ctx context.Context, sql string, args ...any) v5.Row {
+func (m *MockpoolQuery) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, sql}
 	for _, a := range args {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "QueryRow", varargs...)
-	ret0, _ := ret[0].(v5.Row)
+	ret0, _ := ret[0].(pgx.Row)
 	return ret0
 }
 
@@ -102,10 +102,10 @@ func (mr *MockpoolQueryMockRecorder) QueryRow(ctx, sql any, args ...any) *gomock
 }
 
 // SendBatch mocks base method.
-func (m *MockpoolQuery) SendBatch(ctx context.Context, b *v5.Batch) v5.BatchResults {
+func (m *MockpoolQuery) SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendBatch", ctx, b)
-	ret0, _ := ret[0].(v5.BatchResults)
+	ret0, _ := ret[0].(pgx.BatchResults)
 	return ret0
 }
 

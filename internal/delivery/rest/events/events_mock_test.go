@@ -12,8 +12,10 @@ package events
 import (
 	context "context"
 	reflect "reflect"
+	domain "webhook-delivery/internal/domain"
 	dto "webhook-delivery/internal/domain/dto"
 
+	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -42,10 +44,10 @@ func (m *MockInterface) EXPECT() *MockInterfaceMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockInterface) Get(ctx context.Context, eventID string) (*dto.GetEventResult, error) {
+func (m *MockInterface) Get(ctx context.Context, eventID uuid.UUID) (*domain.Event, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", ctx, eventID)
-	ret0, _ := ret[0].(*dto.GetEventResult)
+	ret0, _ := ret[0].(*domain.Event)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -57,12 +59,13 @@ func (mr *MockInterfaceMockRecorder) Get(ctx, eventID any) *gomock.Call {
 }
 
 // Publish mocks base method.
-func (m *MockInterface) Publish(ctx context.Context, command dto.PublishEventCommand) (*dto.PublishEventResult, error) {
+func (m *MockInterface) Publish(ctx context.Context, command dto.PublishEventCommand) (*domain.Event, int, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Publish", ctx, command)
-	ret0, _ := ret[0].(*dto.PublishEventResult)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(*domain.Event)
+	ret1, _ := ret[1].(int)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // Publish indicates an expected call of Publish.

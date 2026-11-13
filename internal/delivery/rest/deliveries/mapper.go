@@ -7,11 +7,14 @@ import (
 	"webhook-delivery/internal/domain"
 )
 
-var errDeliveryNotFound = apiv1.Error{Code: new("delivery_not_found"), Message: "delivery not found"}
+var (
+	errDeliveryNotFound = apiv1.Error{Code: new("delivery_not_found"), Message: "delivery not found"}
+	errEventNotFound    = apiv1.Error{Code: new("event_not_found"), Message: "event not found"}
+)
 
 func ToGetErrorResponse(err error) apiv1.GetDeliveryResponseObject {
 	switch {
-	case errors.Is(err, domain.ErrDeliveryNotFound):
+	case errors.Is(err, domain.ErrDeliveryNotFound), errors.Is(err, domain.ErrInvalidID):
 		return apiv1.GetDelivery404JSONResponse(errDeliveryNotFound)
 
 	default:
@@ -19,13 +22,19 @@ func ToGetErrorResponse(err error) apiv1.GetDeliveryResponseObject {
 	}
 }
 
-func ToGetEventDeliveriesErrorResponse(_ error) apiv1.GetEventDeliveriesResponseObject {
-	return apiv1.GetEventDeliveries500JSONResponse(common.InternalError())
+func ToGetEventDeliveriesErrorResponse(err error) apiv1.GetEventDeliveriesResponseObject {
+	switch {
+	case errors.Is(err, domain.ErrEventNotFound), errors.Is(err, domain.ErrInvalidID):
+		return apiv1.GetEventDeliveries404JSONResponse(errEventNotFound)
+
+	default:
+		return apiv1.GetEventDeliveries500JSONResponse(common.InternalError())
+	}
 }
 
 func ToRetryErrorResponse(err error) apiv1.RetryDeliveryResponseObject {
 	switch {
-	case errors.Is(err, domain.ErrDeliveryNotFound):
+	case errors.Is(err, domain.ErrDeliveryNotFound), errors.Is(err, domain.ErrInvalidID):
 		return apiv1.RetryDelivery404JSONResponse(errDeliveryNotFound)
 
 	default:
@@ -35,9 +44,9 @@ func ToRetryErrorResponse(err error) apiv1.RetryDeliveryResponseObject {
 
 func ToDeliveryInfo(delivery domain.Delivery) apiv1.DeliveryInfo {
 	return apiv1.DeliveryInfo{
-		Id:               delivery.ID,
-		EndpointId:       delivery.EndpointID,
-		EventId:          delivery.EventID,
+		Id:               domain.ToPublicDeliveryID(delivery.ID),
+		EndpointId:       domain.ToPublicEndpointID(delivery.EndpointID),
+		EventId:          domain.ToPublicEventID(delivery.EventID),
 		Status:           apiv1.DeliveryInfoStatus(delivery.Status),
 		Attempts:         delivery.Attempts,
 		MaxAttempts:      delivery.MaxAttempts,

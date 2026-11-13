@@ -5,7 +5,6 @@ import (
 	apiv1 "webhook-delivery/gen/rest/v1"
 	"webhook-delivery/internal/delivery/rest/common"
 	"webhook-delivery/internal/domain"
-	"webhook-delivery/internal/domain/dto"
 	"webhook-delivery/internal/lib/ptr"
 )
 
@@ -17,7 +16,7 @@ func ToGetAllErrorResponse(_ error) apiv1.GetAllEndpointsResponseObject {
 
 func ToGetErrorResponse(err error) apiv1.GetEndpointResponseObject {
 	switch {
-	case errors.Is(err, domain.ErrEndpointNotFound):
+	case errors.Is(err, domain.ErrEndpointNotFound), errors.Is(err, domain.ErrInvalidID):
 		return apiv1.GetEndpoint404JSONResponse(errEndpointNotFound)
 
 	default:
@@ -31,7 +30,7 @@ func ToRegisterErrorResponse(_ error) apiv1.RegisterEndpointResponseObject {
 
 func ToUpdateErrorResponse(err error) apiv1.UpdateEndpointResponseObject {
 	switch {
-	case errors.Is(err, domain.ErrEndpointNotFound):
+	case errors.Is(err, domain.ErrEndpointNotFound), errors.Is(err, domain.ErrInvalidID):
 		return apiv1.UpdateEndpoint404JSONResponse(errEndpointNotFound)
 
 	default:
@@ -41,7 +40,7 @@ func ToUpdateErrorResponse(err error) apiv1.UpdateEndpointResponseObject {
 
 func ToDeleteErrorResponse(err error) apiv1.DeleteEndpointResponseObject {
 	switch {
-	case errors.Is(err, domain.ErrEndpointNotFound):
+	case errors.Is(err, domain.ErrEndpointNotFound), errors.Is(err, domain.ErrInvalidID):
 		return apiv1.DeleteEndpoint404JSONResponse(errEndpointNotFound)
 
 	default:
@@ -49,9 +48,9 @@ func ToDeleteErrorResponse(err error) apiv1.DeleteEndpointResponseObject {
 	}
 }
 
-func ToEndpointInfo(endpoint dto.GetEndpointResult) apiv1.EndpointInfo {
+func ToEndpointInfo(endpoint domain.Endpoint) apiv1.EndpointInfo {
 	return apiv1.EndpointInfo{
-		Id:          endpoint.ID,
+		Id:          domain.ToPublicEndpointID(endpoint.ID),
 		Url:         endpoint.URL,
 		Description: ptr.Defer(endpoint.Description),
 		IsActive:    endpoint.IsActive,
@@ -60,7 +59,7 @@ func ToEndpointInfo(endpoint dto.GetEndpointResult) apiv1.EndpointInfo {
 	}
 }
 
-func ToEndpointsInfo(endpoints []dto.GetEndpointResult) []apiv1.EndpointInfo {
+func ToEndpointsInfo(endpoints []domain.Endpoint) []apiv1.EndpointInfo {
 	result := make([]apiv1.EndpointInfo, 0, len(endpoints))
 	for _, endpoint := range endpoints {
 		result = append(result, ToEndpointInfo(endpoint))

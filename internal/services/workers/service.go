@@ -7,11 +7,12 @@ import (
 	"sync"
 	"time"
 	"webhook-delivery/internal/config"
+	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
 )
 
 type DeliveryRepo interface {
-	ClaimPending(ctx context.Context, batchSize int) ([]dto.ClaimPendingResult, error)
+	ClaimPending(ctx context.Context, batchSize int) ([]domain.PendingDelivery, error)
 	UpdateStatus(ctx context.Context, command dto.UpdateDeliveryStatusCommand) error
 }
 

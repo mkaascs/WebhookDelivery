@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"webhook-delivery/internal/config"
@@ -116,15 +117,18 @@ func Test_sendPostRequest(t *testing.T) {
 func Test_processBatch(t *testing.T) {
 	fixedTime := time.Date(2026, time.July, 1, 12, 0, 0, 0, time.UTC)
 
-	newDelivery := func(url string) dto.ClaimPendingResult {
-		return dto.ClaimPendingResult{
-			ID:          "del-1",
-			URL:         url,
-			Secret:      []byte("s"),
-			Payload:     json.RawMessage(`{}`),
-			Attempts:    0,
-			MaxAttempts: 5,
-			NextRetryAt: fixedTime,
+	newDelivery := func(url string) domain.PendingDelivery {
+		return domain.PendingDelivery{
+			Delivery: domain.Delivery{
+				ID:          uuid.MustParse("01900000-0000-7000-8000-000000000001"),
+				Status:      domain.StatusProcessing,
+				Attempts:    0,
+				MaxAttempts: 5,
+				NextRetryAt: fixedTime,
+			},
+			URL:     url,
+			Secret:  "s",
+			Payload: json.RawMessage(`{}`),
 		}
 	}
 
@@ -169,7 +173,7 @@ func Test_processBatch(t *testing.T) {
 				delivery.Attempts = c.attempts
 				delivery.MaxAttempts = c.maxAttempts
 				repo.EXPECT().ClaimPending(gomock.Any(), gomock.Any()).
-					Return([]dto.ClaimPendingResult{delivery}, nil)
+					Return([]domain.PendingDelivery{delivery}, nil)
 
 				var got dto.UpdateDeliveryStatusCommand
 				repo.EXPECT().UpdateStatus(gomock.Any(), gomock.Any()).
@@ -212,7 +216,7 @@ func Test_processBatch(t *testing.T) {
 
 		svc, repo := newTestService(t, testConfig())
 		repo.EXPECT().ClaimPending(gomock.Any(), gomock.Any()).
-			Return([]dto.ClaimPendingResult{newDelivery(url)}, nil)
+			Return([]domain.PendingDelivery{newDelivery(url)}, nil)
 
 		var got dto.UpdateDeliveryStatusCommand
 		repo.EXPECT().UpdateStatus(gomock.Any(), gomock.Any()).

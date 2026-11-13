@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
-	"webhook-delivery/internal/lib/uuid"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -25,12 +25,12 @@ func (s *Subscriptions) Add(ctx context.Context, command dto.AddSubscriptionComm
 	return subs, err
 }
 
-func (s *Subscriptions) GetAll(ctx context.Context, endpointID string) ([]domain.Subscription, error) {
+func (s *Subscriptions) GetAll(ctx context.Context, endpointID uuid.UUID) ([]domain.Subscription, error) {
 	subs, err := getEndpointSubscriptions(ctx, s.pool, endpointID)
 	return subs, err
 }
 
-func (s *Subscriptions) Delete(ctx context.Context, id string) error {
+func (s *Subscriptions) Delete(ctx context.Context, id uuid.UUID) error {
 	const fn = "infrastructure.pg.Subscriptions.Delete"
 
 	res, err := s.pool.Exec(ctx, `DELETE FROM subscriptions WHERE id = $1`, id)
@@ -45,17 +45,17 @@ func (s *Subscriptions) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func insertSubscription(ctx context.Context, pool poolQuery, endpointID string, eventTypes []string) ([]domain.Subscription, error) {
+func insertSubscription(ctx context.Context, pool poolQuery, endpointID uuid.UUID, eventTypes []string) ([]domain.Subscription, error) {
 	const fn = "infrastructure.pg.insertSubscription"
 
-	subIDs := make([]string, 0, len(eventTypes))
+	subIDs := make([]uuid.UUID, 0, len(eventTypes))
 	for range eventTypes {
-		subIDs = append(subIDs, uuid.NewSubscription())
+		subIDs = append(subIDs, uuid.Must(uuid.NewV7()))
 	}
 
 	rows, err := pool.Query(ctx, `
 		INSERT INTO subscriptions(id, endpoint_id, event_type)
-		SELECT unnest($1::text[]), $2, unnest($3::text[])
+		SELECT unnest($1::uuid[]), $2, unnest($3::text[])
 		ON CONFLICT (endpoint_id, event_type) DO NOTHING
 		RETURNING id, event_type, created_at`,
 		subIDs, endpointID, eventTypes)
@@ -79,7 +79,7 @@ func insertSubscription(ctx context.Context, pool poolQuery, endpointID string, 
 	return subs, nil
 }
 
-func getEndpointSubscriptions(ctx context.Context, pool poolQuery, endpointID string) ([]domain.Subscription, error) {
+func getEndpointSubscriptions(ctx context.Context, pool poolQuery, endpointID uuid.UUID) ([]domain.Subscription, error) {
 	const fn = "infrastructure.pg.getEndpointSubscriptions"
 
 	rows, err := pool.Query(ctx, `

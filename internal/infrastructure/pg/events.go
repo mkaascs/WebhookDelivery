@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
-	"webhook-delivery/internal/lib/uuid"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -26,6 +26,7 @@ func (e *Events) Add(ctx context.Context, command dto.PublishEventCommand) (*dom
 	const fn = "infrastructure.pg.Events.Add"
 
 	event := &domain.Event{
+		ID:      uuid.Must(uuid.NewV7()),
 		Payload: command.Payload,
 		Type:    command.Type,
 	}
@@ -33,9 +34,9 @@ func (e *Events) Add(ctx context.Context, command dto.PublishEventCommand) (*dom
 	err := e.pool.QueryRow(ctx, `
 		INSERT INTO events (id, type, payload)
 		VALUES ($1, $2, $3)
-		RETURNING id, created_at`,
-		uuid.NewEvent(), command.Type, command.Payload).
-		Scan(&event.ID, &event.CreatedAt)
+		RETURNING created_at`,
+		event.ID, command.Type, command.Payload).
+		Scan(&event.CreatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", fn, err)
@@ -44,7 +45,7 @@ func (e *Events) Add(ctx context.Context, command dto.PublishEventCommand) (*dom
 	return event, nil
 }
 
-func (e *Events) GetByID(ctx context.Context, id string) (*domain.Event, error) {
+func (e *Events) GetByID(ctx context.Context, id uuid.UUID) (*domain.Event, error) {
 	const fn = "infrastructure.pg.Events.GetByID"
 
 	event := &domain.Event{ID: id}

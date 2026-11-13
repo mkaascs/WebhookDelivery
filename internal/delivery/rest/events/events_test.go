@@ -12,6 +12,7 @@ import (
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -20,6 +21,9 @@ var (
 	now        = time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
 	errService = errors.New("db down")
 	payload    = json.RawMessage(`{"order_id":42}`)
+
+	eventID       = uuid.MustParse("01900000-0000-7000-8000-0000000000e1")
+	publicEventID = domain.ToPublicEventID(eventID)
 )
 
 func Test_PublishEvent(t *testing.T) {
@@ -39,13 +43,10 @@ func Test_PublishEvent(t *testing.T) {
 				m.EXPECT().Publish(gomock.Any(), dto.PublishEventCommand{
 					Type:    "order.created",
 					Payload: payload,
-				}).Return(&dto.PublishEventResult{
-					Event:             domain.Event{ID: "ev-1", Type: "order.created", Payload: payload, CreatedAt: now},
-					DeliveriesCreated: 3,
-				}, nil)
+				}).Return(&domain.Event{ID: eventID, Type: "order.created", Payload: payload, CreatedAt: now}, 3, nil)
 			},
 			want: apiv1.PublishEvent202JSONResponse{
-				Id:                "ev-1",
+				Id:                publicEventID,
 				Type:              "order.created",
 				DeliveriesCreated: 3,
 				CreatedAt:         now,
@@ -56,12 +57,10 @@ func Test_PublishEvent(t *testing.T) {
 			request: apiv1.PublishEventRequestObject{Body: &apiv1.PublishEventRequest{Type: "order.created"}},
 			setupMock: func(m *MockInterface) {
 				m.EXPECT().Publish(gomock.Any(), dto.PublishEventCommand{Type: "order.created"}).
-					Return(&dto.PublishEventResult{
-						Event: domain.Event{ID: "ev-1", Type: "order.created", CreatedAt: now},
-					}, nil)
+					Return(&domain.Event{ID: eventID, Type: "order.created", CreatedAt: now}, 0, nil)
 			},
 			want: apiv1.PublishEvent202JSONResponse{
-				Id:        "ev-1",
+				Id:        publicEventID,
 				Type:      "order.created",
 				CreatedAt: now,
 			},
@@ -70,7 +69,7 @@ func Test_PublishEvent(t *testing.T) {
 			name:    "internal error",
 			request: apiv1.PublishEventRequestObject{Body: &apiv1.PublishEventRequest{Type: "order.created"}},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil, errService)
+				m.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil, 0, errService)
 			},
 			want: apiv1.PublishEvent500JSONResponse(common.InternalError()),
 		},
@@ -101,14 +100,13 @@ func Test_GetEvent(t *testing.T) {
 	}{
 		{
 			name:    "success",
-			request: apiv1.GetEventRequestObject{Id: "ev-1"},
+			request: apiv1.GetEventRequestObject{Id: publicEventID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().Get(gomock.Any(), "ev-1").Return(&dto.GetEventResult{
-					Event: domain.Event{ID: "ev-1", Type: "order.created", Payload: payload, CreatedAt: now},
-				}, nil)
+				m.EXPECT().Get(gomock.Any(), eventID).
+					Return(&domain.Event{ID: eventID, Type: "order.created", Payload: payload, CreatedAt: now}, nil)
 			},
 			want: apiv1.GetEvent200JSONResponse{
-				Id:        "ev-1",
+				Id:        publicEventID,
 				Type:      "order.created",
 				Payload:   payload,
 				CreatedAt: now,
@@ -116,20 +114,25 @@ func Test_GetEvent(t *testing.T) {
 		},
 		{
 			name:    "event not found",
-			request: apiv1.GetEventRequestObject{Id: "ev-404"},
+			request: apiv1.GetEventRequestObject{Id: publicEventID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().Get(gomock.Any(), "ev-404").
+				m.EXPECT().Get(gomock.Any(), eventID).
 					Return(nil, fmt.Errorf("service: %w", domain.ErrEventNotFound))
 			},
 			want: apiv1.GetEvent404JSONResponse(errEventNotFound),
 		},
 		{
 			name:    "internal error",
-			request: apiv1.GetEventRequestObject{Id: "ev-1"},
+			request: apiv1.GetEventRequestObject{Id: publicEventID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().Get(gomock.Any(), "ev-1").Return(nil, errService)
+				m.EXPECT().Get(gomock.Any(), eventID).Return(nil, errService)
 			},
 			want: apiv1.GetEvent500JSONResponse(common.InternalError()),
+		},
+		{
+			name:    "invalid id",
+			request: apiv1.GetEventRequestObject{Id: "ev_123"},
+			want:    apiv1.GetEvent404JSONResponse(errEventNotFound),
 		},
 	}
 

@@ -11,6 +11,7 @@ import (
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -18,13 +19,21 @@ import (
 var (
 	now        = time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
 	errService = errors.New("db down")
+
+	deliveryID = uuid.MustParse("01900000-0000-7000-8000-000000000001")
+	endpointID = uuid.MustParse("01900000-0000-7000-8000-0000000000a1")
+	eventID    = uuid.MustParse("01900000-0000-7000-8000-0000000000e1")
+
+	publicDeliveryID = domain.ToPublicDeliveryID(deliveryID)
+	publicEndpointID = domain.ToPublicEndpointID(endpointID)
+	publicEventID    = domain.ToPublicEventID(eventID)
 )
 
 func Test_GetDelivery(t *testing.T) {
-	delivery := domain.Delivery{
-		ID:               "del-1",
-		EndpointID:       "ep-1",
-		EventID:          "ev-1",
+	delivery := &domain.Delivery{
+		ID:               deliveryID,
+		EndpointID:       endpointID,
+		EventID:          eventID,
 		Status:           domain.StatusFailed,
 		Attempts:         2,
 		MaxAttempts:      5,
@@ -42,17 +51,15 @@ func Test_GetDelivery(t *testing.T) {
 	}{
 		{
 			name:    "success",
-			request: apiv1.GetDeliveryRequestObject{Id: "del-1"},
+			request: apiv1.GetDeliveryRequestObject{Id: publicDeliveryID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetByID(gomock.Any(), "del-1").
-					Return(&dto.GetDeliveryResult{Delivery: delivery}, nil)
+				m.EXPECT().GetByID(gomock.Any(), deliveryID).Return(delivery, nil)
 			},
-
 			want: apiv1.GetDelivery200JSONResponse{
 				Delivery: apiv1.DeliveryInfo{
-					Id:               "del-1",
-					EndpointId:       "ep-1",
-					EventId:          "ev-1",
+					Id:               publicDeliveryID,
+					EndpointId:       publicEndpointID,
+					EventId:          publicEventID,
 					Status:           apiv1.Failed,
 					Attempts:         2,
 					MaxAttempts:      5,
@@ -65,28 +72,38 @@ func Test_GetDelivery(t *testing.T) {
 		},
 		{
 			name:    "delivery not found",
-			request: apiv1.GetDeliveryRequestObject{Id: "del-404"},
+			request: apiv1.GetDeliveryRequestObject{Id: publicDeliveryID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetByID(gomock.Any(), "del-404").
+				m.EXPECT().GetByID(gomock.Any(), deliveryID).
 					Return(nil, fmt.Errorf("service: %w", domain.ErrDeliveryNotFound))
 			},
 			want: apiv1.GetDelivery404JSONResponse(errDeliveryNotFound),
 		},
 		{
 			name:    "context canceled",
-			request: apiv1.GetDeliveryRequestObject{Id: "del-1"},
+			request: apiv1.GetDeliveryRequestObject{Id: publicDeliveryID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetByID(gomock.Any(), "del-1").Return(nil, context.Canceled)
+				m.EXPECT().GetByID(gomock.Any(), deliveryID).Return(nil, context.Canceled)
 			},
 			want: apiv1.GetDelivery500JSONResponse(common.InternalError()),
 		},
 		{
 			name:    "internal error",
-			request: apiv1.GetDeliveryRequestObject{Id: "del-1"},
+			request: apiv1.GetDeliveryRequestObject{Id: publicDeliveryID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetByID(gomock.Any(), "del-1").Return(nil, errService)
+				m.EXPECT().GetByID(gomock.Any(), deliveryID).Return(nil, errService)
 			},
 			want: apiv1.GetDelivery500JSONResponse(common.InternalError()),
+		},
+		{
+			name:    "id with wrong prefix",
+			request: apiv1.GetDeliveryRequestObject{Id: domain.ToPublicEndpointID(deliveryID)},
+			want:    apiv1.GetDelivery404JSONResponse(errDeliveryNotFound),
+		},
+		{
+			name:    "malformed uuid",
+			request: apiv1.GetDeliveryRequestObject{Id: "del_123"},
+			want:    apiv1.GetDelivery404JSONResponse(errDeliveryNotFound),
 		},
 	}
 
@@ -108,9 +125,9 @@ func Test_GetDelivery(t *testing.T) {
 
 func Test_GetEventDeliveries(t *testing.T) {
 	delivery := domain.Delivery{
-		ID:          "del-1",
-		EndpointID:  "ep-1",
-		EventID:     "ev-1",
+		ID:          deliveryID,
+		EndpointID:  endpointID,
+		EventID:     eventID,
 		Status:      domain.StatusPending,
 		MaxAttempts: 5,
 		NextRetryAt: now,
@@ -118,9 +135,9 @@ func Test_GetEventDeliveries(t *testing.T) {
 	}
 
 	deliveryInfo := apiv1.DeliveryInfo{
-		Id:          "del-1",
-		EndpointId:  "ep-1",
-		EventId:     "ev-1",
+		Id:          publicDeliveryID,
+		EndpointId:  publicEndpointID,
+		EventId:     publicEventID,
 		Status:      apiv1.Pending,
 		MaxAttempts: 5,
 		NextRetryAt: now,
@@ -136,12 +153,12 @@ func Test_GetEventDeliveries(t *testing.T) {
 		{
 			name: "success with pagination params",
 			request: apiv1.GetEventDeliveriesRequestObject{
-				Id:     "ev-1",
+				Id:     publicEventID,
 				Params: apiv1.GetEventDeliveriesParams{Page: new(2), Limit: new(20)},
 			},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetFromEvent(gomock.Any(), dto.GetDeliveriesFromEventCommand{EventID: "ev-1", Page: 2, Limit: 20}).
-					Return(&dto.GetDeliveriesFromEventResult{Total: 21, Deliveries: []domain.Delivery{delivery}}, nil)
+				m.EXPECT().GetFromEvent(gomock.Any(), dto.GetDeliveriesFromEventCommand{EventID: eventID, Page: 2, Limit: 20}).
+					Return([]domain.Delivery{delivery}, 21, nil)
 			},
 			want: apiv1.GetEventDeliveries200JSONResponse{
 				Deliveries: []apiv1.DeliveryInfo{deliveryInfo},
@@ -150,10 +167,10 @@ func Test_GetEventDeliveries(t *testing.T) {
 		},
 		{
 			name:    "default pagination params",
-			request: apiv1.GetEventDeliveriesRequestObject{Id: "ev-1"},
+			request: apiv1.GetEventDeliveriesRequestObject{Id: publicEventID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetFromEvent(gomock.Any(), dto.GetDeliveriesFromEventCommand{EventID: "ev-1", Page: 1, Limit: 10}).
-					Return(&dto.GetDeliveriesFromEventResult{Total: 1, Deliveries: []domain.Delivery{delivery}}, nil)
+				m.EXPECT().GetFromEvent(gomock.Any(), dto.GetDeliveriesFromEventCommand{EventID: eventID, Page: 1, Limit: 10}).
+					Return([]domain.Delivery{delivery}, 1, nil)
 			},
 			want: apiv1.GetEventDeliveries200JSONResponse{
 				Deliveries: []apiv1.DeliveryInfo{deliveryInfo},
@@ -162,10 +179,9 @@ func Test_GetEventDeliveries(t *testing.T) {
 		},
 		{
 			name:    "no deliveries returns empty array",
-			request: apiv1.GetEventDeliveriesRequestObject{Id: "ev-1"},
+			request: apiv1.GetEventDeliveriesRequestObject{Id: publicEventID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetFromEvent(gomock.Any(), gomock.Any()).
-					Return(&dto.GetDeliveriesFromEventResult{}, nil)
+				m.EXPECT().GetFromEvent(gomock.Any(), gomock.Any()).Return(nil, 0, nil)
 			},
 			want: apiv1.GetEventDeliveries200JSONResponse{
 				Deliveries: []apiv1.DeliveryInfo{},
@@ -173,12 +189,26 @@ func Test_GetEventDeliveries(t *testing.T) {
 			},
 		},
 		{
-			name:    "internal error",
-			request: apiv1.GetEventDeliveriesRequestObject{Id: "ev-1"},
+			name:    "event not found",
+			request: apiv1.GetEventDeliveriesRequestObject{Id: publicEventID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetFromEvent(gomock.Any(), gomock.Any()).Return(nil, errService)
+				m.EXPECT().GetFromEvent(gomock.Any(), gomock.Any()).
+					Return(nil, 0, fmt.Errorf("service: %w", domain.ErrEventNotFound))
+			},
+			want: apiv1.GetEventDeliveries404JSONResponse(errEventNotFound),
+		},
+		{
+			name:    "internal error",
+			request: apiv1.GetEventDeliveriesRequestObject{Id: publicEventID},
+			setupMock: func(m *MockInterface) {
+				m.EXPECT().GetFromEvent(gomock.Any(), gomock.Any()).Return(nil, 0, errService)
 			},
 			want: apiv1.GetEventDeliveries500JSONResponse(common.InternalError()),
+		},
+		{
+			name:    "invalid event id",
+			request: apiv1.GetEventDeliveriesRequestObject{Id: "ev_not-a-uuid"},
+			want:    apiv1.GetEventDeliveries404JSONResponse(errEventNotFound),
 		},
 	}
 
@@ -207,28 +237,33 @@ func Test_RetryDelivery(t *testing.T) {
 	}{
 		{
 			name:    "success",
-			request: apiv1.RetryDeliveryRequestObject{Id: "del-1"},
+			request: apiv1.RetryDeliveryRequestObject{Id: publicDeliveryID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().Retry(gomock.Any(), "del-1").Return(nil)
+				m.EXPECT().Retry(gomock.Any(), deliveryID).Return(nil)
 			},
 			want: apiv1.RetryDelivery202Response{},
 		},
 		{
 			name:    "delivery not found",
-			request: apiv1.RetryDeliveryRequestObject{Id: "del-404"},
+			request: apiv1.RetryDeliveryRequestObject{Id: publicDeliveryID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().Retry(gomock.Any(), "del-404").
+				m.EXPECT().Retry(gomock.Any(), deliveryID).
 					Return(fmt.Errorf("service: %w", domain.ErrDeliveryNotFound))
 			},
 			want: apiv1.RetryDelivery404JSONResponse(errDeliveryNotFound),
 		},
 		{
 			name:    "internal error",
-			request: apiv1.RetryDeliveryRequestObject{Id: "del-1"},
+			request: apiv1.RetryDeliveryRequestObject{Id: publicDeliveryID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().Retry(gomock.Any(), "del-1").Return(errService)
+				m.EXPECT().Retry(gomock.Any(), deliveryID).Return(errService)
 			},
 			want: apiv1.RetryDelivery500JSONResponse(common.InternalError()),
+		},
+		{
+			name:    "invalid id",
+			request: apiv1.RetryDeliveryRequestObject{Id: "del_123"},
+			want:    apiv1.RetryDelivery404JSONResponse(errDeliveryNotFound),
 		},
 	}
 

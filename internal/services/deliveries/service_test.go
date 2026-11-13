@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"webhook-delivery/internal/domain"
@@ -21,8 +22,14 @@ func newTestService(t *testing.T) (*Service, *MockDeliveryRepo, *MockRetryNotifi
 	return NewService(repo, notifier, log), repo, notifier
 }
 
+var (
+	deliveryID  = uuid.MustParse("01900000-0000-7000-8000-000000000001")
+	deliveryID2 = uuid.MustParse("01900000-0000-7000-8000-000000000002")
+	eventID     = uuid.MustParse("01900000-0000-7000-8000-0000000000e1")
+)
+
 func Test_Service_GetByID(t *testing.T) {
-	const id = "del-1"
+	id := deliveryID
 	delivery := &domain.Delivery{ID: id, Status: domain.StatusDelivered}
 
 	t.Run("success", func(t *testing.T) {
@@ -31,7 +38,7 @@ func Test_Service_GetByID(t *testing.T) {
 
 		got, err := svc.GetByID(context.Background(), id)
 		require.NoError(t, err)
-		require.Equal(t, &dto.GetDeliveryResult{Delivery: *delivery}, got)
+		require.Equal(t, delivery, got)
 	})
 
 	t.Run("error is wrapped", func(t *testing.T) {
@@ -45,14 +52,9 @@ func Test_Service_GetByID(t *testing.T) {
 }
 
 func Test_Service_GetFromEvent(t *testing.T) {
-	const eventID = "ev-1"
 	deliveries := []domain.Delivery{
-		{ID: "del-1", EventID: eventID, Status: domain.StatusPending},
-		{ID: "del-2", EventID: eventID, Status: domain.StatusFailed},
-	}
-	want := &dto.GetDeliveriesFromEventResult{
-		Total:      12,
-		Deliveries: deliveries,
+		{ID: deliveryID, EventID: eventID, Status: domain.StatusPending},
+		{ID: deliveryID2, EventID: eventID, Status: domain.StatusFailed},
 	}
 
 	t.Run("success", func(t *testing.T) {
@@ -61,12 +63,13 @@ func Test_Service_GetFromEvent(t *testing.T) {
 			EventID: eventID,
 		}).Return(deliveries, 12, nil)
 
-		got, err := svc.GetFromEvent(context.Background(), dto.GetDeliveriesFromEventCommand{
+		got, total, err := svc.GetFromEvent(context.Background(), dto.GetDeliveriesFromEventCommand{
 			EventID: eventID,
 		})
 
 		require.NoError(t, err)
-		require.Equal(t, want, got)
+		require.Equal(t, deliveries, got)
+		require.Equal(t, 12, total)
 	})
 
 	t.Run("error is wrapped", func(t *testing.T) {
@@ -75,17 +78,18 @@ func Test_Service_GetFromEvent(t *testing.T) {
 			EventID: eventID,
 		}).Return(nil, 0, domain.ErrEventNotFound)
 
-		got, err := svc.GetFromEvent(context.Background(), dto.GetDeliveriesFromEventCommand{
+		got, total, err := svc.GetFromEvent(context.Background(), dto.GetDeliveriesFromEventCommand{
 			EventID: eventID,
 		})
 
 		require.Nil(t, got)
+		require.Zero(t, total)
 		require.ErrorIs(t, err, domain.ErrEventNotFound)
 	})
 }
 
 func Test_Service_Retry(t *testing.T) {
-	const id = "del-1"
+	id := deliveryID
 
 	t.Run("success resets the delivery to pending", func(t *testing.T) {
 		svc, repo, notifier := newTestService(t)

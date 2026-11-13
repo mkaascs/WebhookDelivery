@@ -11,6 +11,7 @@ import (
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -18,6 +19,14 @@ import (
 var (
 	now        = time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
 	errService = errors.New("db down")
+
+	endpointID = uuid.MustParse("01900000-0000-7000-8000-0000000000a1")
+	subID1     = uuid.MustParse("01900000-0000-7000-8000-0000000000b1")
+	subID2     = uuid.MustParse("01900000-0000-7000-8000-0000000000b2")
+
+	publicEndpointID = domain.ToPublicEndpointID(endpointID)
+	publicSubID1     = domain.ToPublicSubscriptionID(subID1)
+	publicSubID2     = domain.ToPublicSubscriptionID(subID2)
 )
 
 func Test_GetAllSubscriptions(t *testing.T) {
@@ -29,42 +38,47 @@ func Test_GetAllSubscriptions(t *testing.T) {
 	}{
 		{
 			name:    "success",
-			request: apiv1.GetAllSubscriptionsRequestObject{Id: "ep-1"},
+			request: apiv1.GetAllSubscriptionsRequestObject{Id: publicEndpointID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetAll(gomock.Any(), "ep-1").Return([]dto.GetSubscriptionResult{
-					{ID: "sub-1", EndpointID: "ep-1", EventType: "order.created", CreatedAt: now},
-					{ID: "sub-2", EndpointID: "ep-1", EventType: "order.paid", CreatedAt: now},
+				m.EXPECT().GetAll(gomock.Any(), endpointID).Return([]domain.Subscription{
+					{ID: subID1, EndpointID: endpointID, EventType: "order.created", CreatedAt: now},
+					{ID: subID2, EndpointID: endpointID, EventType: "order.paid", CreatedAt: now},
 				}, nil)
 			},
 			want: apiv1.GetAllSubscriptions200JSONResponse{Subscriptions: []apiv1.SubscriptionInfo{
-				{Id: "sub-1", EndpointId: "ep-1", EventType: "order.created", CreatedAt: now},
-				{Id: "sub-2", EndpointId: "ep-1", EventType: "order.paid", CreatedAt: now},
+				{Id: publicSubID1, EndpointId: publicEndpointID, EventType: "order.created", CreatedAt: now},
+				{Id: publicSubID2, EndpointId: publicEndpointID, EventType: "order.paid", CreatedAt: now},
 			}},
 		},
 		{
 			name:    "no subscriptions returns empty array",
-			request: apiv1.GetAllSubscriptionsRequestObject{Id: "ep-1"},
+			request: apiv1.GetAllSubscriptionsRequestObject{Id: publicEndpointID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetAll(gomock.Any(), "ep-1").Return(nil, nil)
+				m.EXPECT().GetAll(gomock.Any(), endpointID).Return(nil, nil)
 			},
 			want: apiv1.GetAllSubscriptions200JSONResponse{Subscriptions: []apiv1.SubscriptionInfo{}},
 		},
 		{
 			name:    "endpoint not found",
-			request: apiv1.GetAllSubscriptionsRequestObject{Id: "ep-404"},
+			request: apiv1.GetAllSubscriptionsRequestObject{Id: publicEndpointID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetAll(gomock.Any(), "ep-404").
+				m.EXPECT().GetAll(gomock.Any(), endpointID).
 					Return(nil, fmt.Errorf("service: %w", domain.ErrEndpointNotFound))
 			},
 			want: apiv1.GetAllSubscriptions404JSONResponse(errEndpointNotFound),
 		},
 		{
 			name:    "internal error",
-			request: apiv1.GetAllSubscriptionsRequestObject{Id: "ep-1"},
+			request: apiv1.GetAllSubscriptionsRequestObject{Id: publicEndpointID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetAll(gomock.Any(), "ep-1").Return(nil, errService)
+				m.EXPECT().GetAll(gomock.Any(), endpointID).Return(nil, errService)
 			},
 			want: apiv1.GetAllSubscriptions500JSONResponse(common.InternalError()),
+		},
+		{
+			name:    "invalid endpoint id",
+			request: apiv1.GetAllSubscriptionsRequestObject{Id: "ep_123"},
+			want:    apiv1.GetAllSubscriptions404JSONResponse(errEndpointNotFound),
 		},
 	}
 
@@ -86,12 +100,12 @@ func Test_GetAllSubscriptions(t *testing.T) {
 
 func Test_Subscribe(t *testing.T) {
 	request := apiv1.SubscribeRequestObject{
-		Id:   "ep-1",
+		Id:   publicEndpointID,
 		Body: &apiv1.SubscribeRequest{EventTypes: []string{"order.created", "order.paid"}},
 	}
 
 	command := dto.AddSubscriptionCommand{
-		EndpointID: "ep-1",
+		EndpointID: endpointID,
 		EventTypes: []string{"order.created", "order.paid"},
 	}
 
@@ -105,18 +119,16 @@ func Test_Subscribe(t *testing.T) {
 			name:    "success",
 			request: request,
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().Add(gomock.Any(), command).Return(&dto.AddSubscriptionResult{
-					Subscriptions: []domain.Subscription{
-						{ID: "sub-1", EndpointID: "ep-1", EventType: "order.created", CreatedAt: now},
-						{ID: "sub-2", EndpointID: "ep-1", EventType: "order.paid", CreatedAt: now},
-					},
+				m.EXPECT().Add(gomock.Any(), command).Return([]domain.Subscription{
+					{ID: subID1, EndpointID: endpointID, EventType: "order.created", CreatedAt: now},
+					{ID: subID2, EndpointID: endpointID, EventType: "order.paid", CreatedAt: now},
 				}, nil)
 			},
 			want: apiv1.Subscribe200JSONResponse{
-				EndpointId: "ep-1",
+				EndpointId: publicEndpointID,
 				Subscriptions: []apiv1.SubscriptionInfo{
-					{Id: "sub-1", EndpointId: "ep-1", EventType: "order.created", CreatedAt: now},
-					{Id: "sub-2", EndpointId: "ep-1", EventType: "order.paid", CreatedAt: now},
+					{Id: publicSubID1, EndpointId: publicEndpointID, EventType: "order.created", CreatedAt: now},
+					{Id: publicSubID2, EndpointId: publicEndpointID, EventType: "order.paid", CreatedAt: now},
 				},
 			},
 		},
@@ -124,10 +136,10 @@ func Test_Subscribe(t *testing.T) {
 			name:    "already subscribed to all event types returns empty array",
 			request: request,
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().Add(gomock.Any(), command).Return(&dto.AddSubscriptionResult{}, nil)
+				m.EXPECT().Add(gomock.Any(), command).Return(nil, nil)
 			},
 			want: apiv1.Subscribe200JSONResponse{
-				EndpointId:    "ep-1",
+				EndpointId:    publicEndpointID,
 				Subscriptions: []apiv1.SubscriptionInfo{},
 			},
 		},
@@ -157,6 +169,14 @@ func Test_Subscribe(t *testing.T) {
 			},
 			want: apiv1.Subscribe500JSONResponse(common.InternalError()),
 		},
+		{
+			name: "invalid endpoint id",
+			request: apiv1.SubscribeRequestObject{
+				Id:   "endpoint-1",
+				Body: &apiv1.SubscribeRequest{EventTypes: []string{"order.created"}},
+			},
+			want: apiv1.Subscribe404JSONResponse(errEndpointNotFound),
+		},
 	}
 
 	for _, tt := range tests {
@@ -184,28 +204,33 @@ func Test_DeleteSubscription(t *testing.T) {
 	}{
 		{
 			name:    "success",
-			request: apiv1.DeleteSubscriptionRequestObject{Id: "sub-1"},
+			request: apiv1.DeleteSubscriptionRequestObject{Id: publicSubID1},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().Delete(gomock.Any(), "sub-1").Return(nil)
+				m.EXPECT().Delete(gomock.Any(), subID1).Return(nil)
 			},
 			want: apiv1.DeleteSubscription204Response{},
 		},
 		{
 			name:    "subscription not found",
-			request: apiv1.DeleteSubscriptionRequestObject{Id: "sub-404"},
+			request: apiv1.DeleteSubscriptionRequestObject{Id: publicSubID1},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().Delete(gomock.Any(), "sub-404").
+				m.EXPECT().Delete(gomock.Any(), subID1).
 					Return(fmt.Errorf("service: %w", domain.ErrSubscriptionNotFound))
 			},
 			want: apiv1.DeleteSubscription404JSONResponse(errSubscriptionNotFound),
 		},
 		{
 			name:    "internal error",
-			request: apiv1.DeleteSubscriptionRequestObject{Id: "sub-1"},
+			request: apiv1.DeleteSubscriptionRequestObject{Id: publicSubID1},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().Delete(gomock.Any(), "sub-1").Return(errService)
+				m.EXPECT().Delete(gomock.Any(), subID1).Return(errService)
 			},
 			want: apiv1.DeleteSubscription500JSONResponse(common.InternalError()),
+		},
+		{
+			name:    "invalid id",
+			request: apiv1.DeleteSubscriptionRequestObject{Id: publicEndpointID},
+			want:    apiv1.DeleteSubscription404JSONResponse(errSubscriptionNotFound),
 		},
 	}
 
