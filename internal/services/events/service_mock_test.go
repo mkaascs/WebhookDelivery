@@ -19,42 +19,6 @@ import (
 	gomock "go.uber.org/mock/gomock"
 )
 
-// MockEventNotifier is a mock of EventNotifier interface.
-type MockEventNotifier struct {
-	ctrl     *gomock.Controller
-	recorder *MockEventNotifierMockRecorder
-	isgomock struct{}
-}
-
-// MockEventNotifierMockRecorder is the mock recorder for MockEventNotifier.
-type MockEventNotifierMockRecorder struct {
-	mock *MockEventNotifier
-}
-
-// NewMockEventNotifier creates a new mock instance.
-func NewMockEventNotifier(ctrl *gomock.Controller) *MockEventNotifier {
-	mock := &MockEventNotifier{ctrl: ctrl}
-	mock.recorder = &MockEventNotifierMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockEventNotifier) EXPECT() *MockEventNotifierMockRecorder {
-	return m.recorder
-}
-
-// Notify mocks base method.
-func (m *MockEventNotifier) Notify() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Notify")
-}
-
-// Notify indicates an expected call of Notify.
-func (mr *MockEventNotifierMockRecorder) Notify() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Notify", reflect.TypeOf((*MockEventNotifier)(nil).Notify))
-}
-
 // MockEventRepo is a mock of EventRepo interface.
 type MockEventRepo struct {
 	ctrl     *gomock.Controller

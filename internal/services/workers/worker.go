@@ -48,10 +48,7 @@ func NewWorkers(repo DeliveryRepo, cfg config.Workers, log *slog.Logger) *Worker
 
 func (w *Worker) Run(ctx context.Context) {
 	for count := 0; count < w.cfg.MaxGoroutines; count++ {
-		w.wg.Add(1)
-		go func() {
-			defer w.wg.Done()
-
+		w.wg.Go(func() {
 			for {
 				select {
 				case <-ctx.Done():
@@ -60,11 +57,10 @@ func (w *Worker) Run(ctx context.Context) {
 					w.process(ctx, delivery)
 				}
 			}
-		}()
+		})
 	}
 
 	w.wg.Wait()
-	close(w.queue)
 }
 
 func (w *Worker) Enqueue(delivery *domain.PendingDelivery) {

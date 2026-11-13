@@ -12,7 +12,6 @@ package workers
 import (
 	context "context"
 	reflect "reflect"
-	domain "webhook-delivery/internal/domain"
 	dto "webhook-delivery/internal/domain/dto"
 
 	gomock "go.uber.org/mock/gomock"
@@ -40,21 +39,6 @@ func NewMockDeliveryRepo(ctrl *gomock.Controller) *MockDeliveryRepo {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockDeliveryRepo) EXPECT() *MockDeliveryRepoMockRecorder {
 	return m.recorder
-}
-
-// ClaimPending mocks base method.
-func (m *MockDeliveryRepo) ClaimPending(ctx context.Context, batchSize int) ([]domain.PendingDelivery, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ClaimPending", ctx, batchSize)
-	ret0, _ := ret[0].([]domain.PendingDelivery)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ClaimPending indicates an expected call of ClaimPending.
-func (mr *MockDeliveryRepoMockRecorder) ClaimPending(ctx, batchSize any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClaimPending", reflect.TypeOf((*MockDeliveryRepo)(nil).ClaimPending), ctx, batchSize)
 }
 
 // UpdateStatus mocks base method.

@@ -16,13 +16,12 @@ import (
 
 var eventID = uuid.MustParse("01900000-0000-7000-8000-0000000000e1")
 
-func newTestService(t *testing.T) (*Service, *MockEventRepo, *MockDeliveryRepo, *MockEventNotifier) {
+func newTestService(t *testing.T) (*Service, *MockEventRepo, *MockDeliveryRepo) {
 	ctrl := gomock.NewController(t)
 	eventRepo := NewMockEventRepo(ctrl)
 	deliveryRepo := NewMockDeliveryRepo(ctrl)
-	notifier := NewMockEventNotifier(ctrl)
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return NewService(eventRepo, deliveryRepo, notifier, log), eventRepo, deliveryRepo, notifier
+	return NewService(eventRepo, deliveryRepo, log), eventRepo, deliveryRepo
 }
 
 func Test_Service_Publish(t *testing.T) {
@@ -30,10 +29,9 @@ func Test_Service_Publish(t *testing.T) {
 	event := &domain.Event{ID: eventID, Type: "order.created"}
 
 	t.Run("success", func(t *testing.T) {
-		svc, eventRepo, deliveryRepo, notifier := newTestService(t)
+		svc, eventRepo, deliveryRepo := newTestService(t)
 		eventRepo.EXPECT().Add(gomock.Any(), cmd).Return(event, nil)
 		deliveryRepo.EXPECT().CreateForEvent(gomock.Any(), eventID, "order.created").Return(3, nil)
-		notifier.EXPECT().Notify()
 
 		got, deliveriesCreated, err := svc.Publish(context.Background(), cmd)
 		require.NoError(t, err)
@@ -42,7 +40,7 @@ func Test_Service_Publish(t *testing.T) {
 	})
 
 	t.Run("event repo error", func(t *testing.T) {
-		svc, eventRepo, _, _ := newTestService(t)
+		svc, eventRepo, _ := newTestService(t)
 		repoErr := errors.New("db down")
 		eventRepo.EXPECT().Add(gomock.Any(), cmd).Return(nil, repoErr)
 
@@ -52,7 +50,7 @@ func Test_Service_Publish(t *testing.T) {
 	})
 
 	t.Run("delivery repo error", func(t *testing.T) {
-		svc, eventRepo, deliveryRepo, _ := newTestService(t)
+		svc, eventRepo, deliveryRepo := newTestService(t)
 		deliErr := errors.New("redis down")
 		eventRepo.EXPECT().Add(gomock.Any(), cmd).Return(event, nil)
 		deliveryRepo.EXPECT().CreateForEvent(gomock.Any(), eventID, "order.created").Return(0, deliErr)
@@ -68,7 +66,7 @@ func Test_Service_Get(t *testing.T) {
 	event := &domain.Event{ID: id, Type: "order.created"}
 
 	t.Run("success", func(t *testing.T) {
-		svc, eventRepo, _, _ := newTestService(t)
+		svc, eventRepo, _ := newTestService(t)
 		eventRepo.EXPECT().GetByID(gomock.Any(), id).Return(event, nil)
 
 		got, err := svc.Get(context.Background(), id)
@@ -77,7 +75,7 @@ func Test_Service_Get(t *testing.T) {
 	})
 
 	t.Run("error is wrapped", func(t *testing.T) {
-		svc, eventRepo, _, _ := newTestService(t)
+		svc, eventRepo, _ := newTestService(t)
 		eventRepo.EXPECT().GetByID(gomock.Any(), id).Return(nil, domain.ErrEventNotFound)
 
 		got, err := svc.Get(context.Background(), id)

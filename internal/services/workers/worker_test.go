@@ -6,7 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -23,22 +23,41 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func newTestService(t *testing.T, cfg config.Workers) (*Worker, *MockDeliveryRepo) {
+var (
+	fixedTime  = time.Date(2026, time.July, 1, 12, 0, 0, 0, time.UTC)
+	deliveryID = uuid.MustParse("01900000-0000-7000-8000-000000000001")
+)
+
+func newTestWorker(t *testing.T, cfg config.Workers) (*Worker, *MockDeliveryRepo) {
 	ctrl := gomock.NewController(t)
 	repo := NewMockDeliveryRepo(ctrl)
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return NewWorkers(repo, log, cfg), repo
+	return NewWorkers(repo, cfg, log), repo
 }
 
-func testConfig() config.Workers {
+func testWorkersConfig() config.Workers {
 	return config.Workers{
-		MaxGoroutines:  1,
-		BatchSize:      10,
-		MaxAttempts:    5,
-		BaseBackoff:    time.Second,
-		MaxBackoff:     time.Hour,
-		TickerDuration: time.Minute,
-		Timeout:        5 * time.Second,
+		MaxGoroutines: 1,
+		MaxAttempts:   5,
+		BaseBackoff:   time.Second,
+		MaxBackoff:    time.Hour,
+		Timeout:       5 * time.Second,
+		QueueSize:     2,
+	}
+}
+
+func newPendingDelivery(url string, attempts int) *domain.PendingDelivery {
+	return &domain.PendingDelivery{
+		Delivery: domain.Delivery{
+			ID:          deliveryID,
+			Status:      domain.StatusProcessing,
+			Attempts:    attempts,
+			MaxAttempts: 5,
+			NextRetryAt: fixedTime,
+		},
+		URL:     url,
+		Secret:  "s",
+		Payload: json.RawMessage(`{}`),
 	}
 }
 
@@ -47,17 +66,20 @@ func Test_isSuccessCode(t *testing.T) {
 		code int
 		want bool
 	}{
+		{0, false},
+		{199, false},
 		{200, true},
 		{201, true},
 		{299, true},
-		{199, false},
-		{300, false},
+		{300, true},
+		{399, true},
+		{400, false},
 		{404, false},
 		{500, false},
 	}
 
 	for _, tt := range tests {
-		require.Equal(t, tt.want, isSuccessCode(tt.code))
+		require.Equal(t, tt.want, isSuccessCode(tt.code), "code %d", tt.code)
 	}
 }
 
@@ -76,8 +98,8 @@ func Test_sendPostRequest(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		svc, _ := newTestService(t, testConfig())
-		code, desc, err := svc.sendPostRequest(context.Background(), srv.URL, payload, secret)
+		worker, _ := newTestWorker(t, testWorkersConfig())
+		code, desc, err := worker.sendPostRequest(context.Background(), srv.URL, payload, secret)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, code)
 		require.Equal(t, "HTTP 200", desc)
@@ -90,13 +112,13 @@ func Test_sendPostRequest(t *testing.T) {
 	})
 
 	t.Run("non-2xx status is returned without error", func(t *testing.T) {
-		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}))
 		defer srv.Close()
 
-		svc, _ := newTestService(t, testConfig())
-		code, desc, err := svc.sendPostRequest(context.Background(), srv.URL, payload, secret)
+		worker, _ := newTestWorker(t, testWorkersConfig())
+		code, desc, err := worker.sendPostRequest(context.Background(), srv.URL, payload, secret)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusInternalServerError, code)
 		require.Equal(t, "HTTP 500", desc)
@@ -107,132 +129,200 @@ func Test_sendPostRequest(t *testing.T) {
 		url := srv.URL
 		srv.Close()
 
-		svc, _ := newTestService(t, testConfig())
-		code, desc, err := svc.sendPostRequest(context.Background(), url, payload, secret)
+		worker, _ := newTestWorker(t, testWorkersConfig())
+		code, desc, err := worker.sendPostRequest(context.Background(), url, payload, secret)
 		require.Error(t, err)
 		require.Zero(t, code)
 		require.Equal(t, err.Error(), desc)
 	})
 }
 
-func Test_processBatch(t *testing.T) {
-	fixedTime := time.Date(2026, time.July, 1, 12, 0, 0, 0, time.UTC)
-
-	newDelivery := func(url string) domain.PendingDelivery {
-		return domain.PendingDelivery{
-			Delivery: domain.Delivery{
-				ID:          uuid.MustParse("01900000-0000-7000-8000-000000000001"),
-				Status:      domain.StatusProcessing,
-				Attempts:    0,
-				MaxAttempts: 5,
-				NextRetryAt: fixedTime,
-			},
-			URL:     url,
-			Secret:  "s",
-			Payload: json.RawMessage(`{}`),
-		}
+func Test_process(t *testing.T) {
+	tests := []struct {
+		name            string
+		serverCode      int // 0 means the receiver is unreachable
+		attempts        int // attempts before this one
+		wantStatus      domain.DeliveryStatus
+		wantAttempts    int
+		wantRescheduled bool // pending gets a fresh next_retry_at, delivered and failed keep the original
+		wantLastCode    *int
+		wantLastError   bool
+	}{
+		{
+			name:         "2xx -> delivered",
+			serverCode:   http.StatusOK,
+			wantStatus:   domain.StatusDelivered,
+			wantAttempts: 1,
+		},
+		{
+			name:         "3xx -> delivered",
+			serverCode:   http.StatusNotModified,
+			wantStatus:   domain.StatusDelivered,
+			wantAttempts: 1,
+		},
+		{
+			name:            "5xx with attempts left -> pending",
+			serverCode:      http.StatusInternalServerError,
+			wantStatus:      domain.StatusPending,
+			wantAttempts:    1,
+			wantRescheduled: true,
+			wantLastCode:    new(http.StatusInternalServerError),
+			wantLastError:   true,
+		},
+		{
+			name:            "4xx with attempts left -> pending",
+			serverCode:      http.StatusNotFound,
+			attempts:        2,
+			wantStatus:      domain.StatusPending,
+			wantAttempts:    3,
+			wantRescheduled: true,
+			wantLastCode:    new(http.StatusNotFound),
+			wantLastError:   true,
+		},
+		{
+			name:          "last attempt failed -> failed",
+			serverCode:    http.StatusInternalServerError,
+			attempts:      4,
+			wantStatus:    domain.StatusFailed,
+			wantAttempts:  5,
+			wantLastCode:  new(http.StatusInternalServerError),
+			wantLastError: true,
+		},
+		{
+			name:            "transport error -> pending with zero code",
+			wantStatus:      domain.StatusPending,
+			wantAttempts:    1,
+			wantRescheduled: true,
+			wantLastCode:    new(0),
+			wantLastError:   true,
+		},
 	}
 
-	t.Run("claim error skips processing", func(t *testing.T) {
-		svc, repo := newTestService(t, testConfig())
-		repo.EXPECT().ClaimPending(gomock.Any(), gomock.Any()).Return(nil, context.DeadlineExceeded)
-
-		svc.processBatch(context.Background())
-	})
-
-	t.Run("empty batch does nothing", func(t *testing.T) {
-		svc, repo := newTestService(t, testConfig())
-		repo.EXPECT().ClaimPending(gomock.Any(), gomock.Any()).Return(nil, nil)
-
-		svc.processBatch(context.Background())
-	})
-
-	t.Run("update status by response code and attempts", func(t *testing.T) {
-		cases := []struct {
-			name            string
-			serverCode      int
-			attempts        int
-			maxAttempts     int
-			wantStatus      domain.DeliveryStatus
-			wantAttempts    int
-			wantRescheduled bool // pending gets a fresh next_retry_at; delivered/failed keep the original
-		}{
-			{"2xx -> delivered", http.StatusOK, 0, 5, domain.StatusDelivered, 1, false},
-			{"non-2xx with attempts left -> pending", http.StatusInternalServerError, 0, 5, domain.StatusPending, 1, true},
-			{"non-2xx with attempts exhausted -> failed", http.StatusInternalServerError, 4, 5, domain.StatusFailed, 5, false},
-		}
-
-		for _, c := range cases {
-			t.Run(c.name, func(t *testing.T) {
-				srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-					w.WriteHeader(c.serverCode)
-				}))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tt.serverCode)
+			}))
+			url := srv.URL
+			if tt.serverCode == 0 {
+				srv.Close()
+			} else {
 				defer srv.Close()
+			}
 
-				svc, repo := newTestService(t, testConfig())
-				delivery := newDelivery(srv.URL)
-				delivery.Attempts = c.attempts
-				delivery.MaxAttempts = c.maxAttempts
-				repo.EXPECT().ClaimPending(gomock.Any(), gomock.Any()).
-					Return([]domain.PendingDelivery{delivery}, nil)
+			worker, repo := newTestWorker(t, testWorkersConfig())
 
-				var got dto.UpdateDeliveryStatusCommand
-				repo.EXPECT().UpdateStatus(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ context.Context, cmd dto.UpdateDeliveryStatusCommand) error {
-						got = cmd
-						return nil
-					})
+			var got dto.UpdateDeliveryStatusCommand
+			repo.EXPECT().UpdateStatus(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, cmd dto.UpdateDeliveryStatusCommand) error {
+					got = cmd
+					return nil
+				})
 
-				before := time.Now()
-				svc.processBatch(context.Background())
+			before := time.Now()
+			worker.process(context.Background(), newPendingDelivery(url, tt.attempts))
 
-				require.Equal(t, delivery.ID, got.ID)
-				require.Equal(t, c.wantStatus, got.Status)
-				require.Equal(t, c.wantAttempts, got.Attempts)
+			require.Equal(t, deliveryID, got.ID)
+			require.Equal(t, tt.wantStatus, got.Status)
+			require.Equal(t, tt.wantAttempts, got.Attempts)
+			require.Equal(t, tt.wantLastCode, got.LastResponseCode)
+			require.Equal(t, tt.wantLastError, got.LastError != nil)
 
-				require.NotNil(t, got.LastResponseCode)
-				require.Equal(t, c.serverCode, *got.LastResponseCode)
+			if tt.wantRescheduled {
+				require.True(t, got.NextRetryAt.After(before))
+			} else {
+				require.Equal(t, fixedTime, got.NextRetryAt)
+			}
+		})
+	}
 
-				if c.wantStatus == domain.StatusDelivered {
-					require.Nil(t, got.LastError)
-					require.Equal(t, fixedTime, got.NextRetryAt)
-					return
-				}
+	t.Run("update error is only logged", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer srv.Close()
 
-				require.NotNil(t, got.LastError)
-				require.Equal(t, fmt.Sprintf("HTTP %d", c.serverCode), *got.LastError)
-				if c.wantRescheduled {
-					require.True(t, got.NextRetryAt.After(before))
-				} else {
-					require.Equal(t, fixedTime, got.NextRetryAt)
-				}
-			})
-		}
+		worker, repo := newTestWorker(t, testWorkersConfig())
+		repo.EXPECT().UpdateStatus(gomock.Any(), gomock.Any()).Return(errors.New("db down"))
+
+		require.NotPanics(t, func() {
+			worker.process(context.Background(), newPendingDelivery(srv.URL, 0))
+		})
 	})
+}
 
-	t.Run("transport error is retried as pending", func(t *testing.T) {
-		srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
-		url := srv.URL
-		srv.Close()
+func Test_backoff(t *testing.T) {
+	cfg := testWorkersConfig()
+	worker, _ := newTestWorker(t, cfg)
 
-		svc, repo := newTestService(t, testConfig())
-		repo.EXPECT().ClaimPending(gomock.Any(), gomock.Any()).
-			Return([]domain.PendingDelivery{newDelivery(url)}, nil)
+	tests := []struct {
+		name     string
+		attempts int
+		base     time.Duration
+	}{
+		{name: "first attempt uses base backoff", attempts: 1, base: cfg.BaseBackoff},
+		{name: "doubles every attempt", attempts: 4, base: 8 * cfg.BaseBackoff},
+		{name: "capped by max backoff", attempts: 30, base: cfg.MaxBackoff},
+	}
 
-		var got dto.UpdateDeliveryStatusCommand
-		repo.EXPECT().UpdateStatus(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, cmd dto.UpdateDeliveryStatusCommand) error {
-				got = cmd
-				return nil
-			})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for range 100 {
+				got := worker.backoff(tt.attempts)
+				require.GreaterOrEqual(t, got, time.Duration(float64(tt.base)*0.8))
+				require.LessOrEqual(t, got, time.Duration(float64(tt.base)*1.2))
+			}
+		})
+	}
+}
 
-		before := time.Now()
-		svc.processBatch(context.Background())
+func Test_EnqueueAndFreeSlots(t *testing.T) {
+	worker, _ := newTestWorker(t, testWorkersConfig())
+	require.Equal(t, 2, worker.FreeSlots())
 
-		require.Equal(t, domain.StatusPending, got.Status)
-		require.Equal(t, 1, got.Attempts)
-		require.True(t, got.NextRetryAt.After(before))
-		require.Nil(t, got.LastResponseCode)
-		require.NotNil(t, got.LastError)
-	})
+	worker.Enqueue(newPendingDelivery("http://example.com", 0))
+	require.Equal(t, 1, worker.FreeSlots())
+
+	worker.Enqueue(newPendingDelivery("http://example.com", 0))
+	require.Zero(t, worker.FreeSlots())
+}
+
+func Test_Run(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	worker, repo := newTestWorker(t, testWorkersConfig())
+
+	processed := make(chan dto.UpdateDeliveryStatusCommand, 1)
+	repo.EXPECT().UpdateStatus(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, cmd dto.UpdateDeliveryStatusCommand) error {
+			processed <- cmd
+			return nil
+		})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		worker.Run(ctx)
+		close(done)
+	}()
+
+	worker.Enqueue(newPendingDelivery(srv.URL, 0))
+
+	select {
+	case cmd := <-processed:
+		require.Equal(t, domain.StatusDelivered, cmd.Status)
+	case <-time.After(5 * time.Second):
+		t.Fatal("queued delivery was not processed")
+	}
+
+	cancel()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Run did not stop after context cancel")
+	}
 }

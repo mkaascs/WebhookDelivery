@@ -68,9 +68,9 @@ func (d *Dispatcher) dispatch(ctx context.Context) {
 	const fn = "services.workers.Dispatcher.dispatch"
 	log := d.log.With(slog.String("fn", fn))
 
-	free := d.queue.FreeSlots()
-	if free > d.cfg.BatchSize {
-		free = d.cfg.BatchSize
+	free := min(d.queue.FreeSlots(), d.cfg.BatchSize)
+	if free == 0 {
+		return
 	}
 
 	deliveries, err := d.repo.ClaimPending(ctx, free)

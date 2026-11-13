@@ -19,42 +19,6 @@ import (
 	gomock "go.uber.org/mock/gomock"
 )
 
-// MockRetryNotifier is a mock of RetryNotifier interface.
-type MockRetryNotifier struct {
-	ctrl     *gomock.Controller
-	recorder *MockRetryNotifierMockRecorder
-	isgomock struct{}
-}
-
-// MockRetryNotifierMockRecorder is the mock recorder for MockRetryNotifier.
-type MockRetryNotifierMockRecorder struct {
-	mock *MockRetryNotifier
-}
-
-// NewMockRetryNotifier creates a new mock instance.
-func NewMockRetryNotifier(ctrl *gomock.Controller) *MockRetryNotifier {
-	mock := &MockRetryNotifier{ctrl: ctrl}
-	mock.recorder = &MockRetryNotifierMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockRetryNotifier) EXPECT() *MockRetryNotifierMockRecorder {
-	return m.recorder
-}
-
-// Notify mocks base method.
-func (m *MockRetryNotifier) Notify() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Notify")
-}
-
-// Notify indicates an expected call of Notify.
-func (mr *MockRetryNotifierMockRecorder) Notify() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Notify", reflect.TypeOf((*MockRetryNotifier)(nil).Notify))
-}
-
 // MockDeliveryRepo is a mock of DeliveryRepo interface.
 type MockDeliveryRepo struct {
 	ctrl     *gomock.Controller

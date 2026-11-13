@@ -75,9 +75,9 @@ func (s *Service) Get(ctx context.Context, eventID uuid.UUID) (*domain.Event, er
 
 func (s *Service) logError(log *slog.Logger, msg string, err error, args ...any) {
 	if domain.IsDomainError(err) || domain.IsCtxError(err) {
-		log.Info(msg, sloglib.Error(err), args)
+		log.With(args...).Info(msg, sloglib.Error(err))
 		return
 	}
 
-	log.Error(msg, sloglib.Error(err), args)
+	log.With(args...).Error(msg, sloglib.Error(err))
 }
