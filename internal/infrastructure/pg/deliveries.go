@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
-	"webhook-delivery/internal/lib/uuid"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -24,7 +24,7 @@ func NewDeliveries(pool *pgxpool.Pool, log *slog.Logger, maxAttempts int) *Deliv
 	return &Deliveries{pool: pool, log: log, maxAttempts: maxAttempts}
 }
 
-func (d *Deliveries) CreateForEvent(ctx context.Context, eventID, eventType string) (int, error) {
+func (d *Deliveries) CreateForEvent(ctx context.Context, eventID uuid.UUID, eventType string) (int, error) {
 	const fn = "infrastructure.pg.Deliveries.CreateForEvent"
 
 	rows, err := d.pool.Query(ctx, `
@@ -39,15 +39,15 @@ func (d *Deliveries) CreateForEvent(ctx context.Context, eventID, eventType stri
 
 	defer rows.Close()
 
-	var deliveryIDs, endpointIDs []string
-	for index := 0; rows.Next(); index++ {
-		var endpointID string
+	var deliveryIDs, endpointIDs []uuid.UUID
+	for rows.Next() {
+		var endpointID uuid.UUID
 		if err := rows.Scan(&endpointID); err != nil {
 			return 0, fmt.Errorf("%s: %w", fn, err)
 		}
 
 		endpointIDs = append(endpointIDs, endpointID)
-		deliveryIDs = append(deliveryIDs, uuid.NewDelivery())
+		deliveryIDs = append(deliveryIDs, uuid.Must(uuid.NewV7()))
 	}
 
 	if err := rows.Err(); err != nil {
@@ -61,7 +61,7 @@ func (d *Deliveries) CreateForEvent(ctx context.Context, eventID, eventType stri
 	res, err := d.pool.Exec(ctx, `
 		INSERT INTO deliveries (id, endpoint_id, event_id, max_attempts)
 		SELECT d_id, e_id, $3, $4
-		FROM unnest($1::text[], $2::text[]) AS t(d_id, e_id)
+		FROM unnest($1::uuid[], $2::uuid[]) AS t(d_id, e_id)
 		ON CONFLICT (endpoint_id, event_id) DO NOTHING`,
 		deliveryIDs, endpointIDs, eventID, d.maxAttempts)
 
@@ -72,7 +72,7 @@ func (d *Deliveries) CreateForEvent(ctx context.Context, eventID, eventType stri
 	return int(res.RowsAffected()), nil
 }
 
-func (d *Deliveries) ClaimPending(ctx context.Context, batchSize int) ([]dto.ClaimPendingResult, error) {
+func (d *Deliveries) ClaimPending(ctx context.Context, batchSize int) ([]domain.PendingDelivery, error) {
 	const fn = "infrastructure.pg.Deliveries.ClaimPending"
 
 	rows, err := d.pool.Query(ctx, `
@@ -89,7 +89,8 @@ func (d *Deliveries) ClaimPending(ctx context.Context, batchSize int) ([]dto.Cla
 		    	LIMIT $1
 		    	FOR UPDATE SKIP LOCKED
 		    )
-		RETURNING d.id, e.url, e.secret, ev.payload, attempts, max_attempts, next_retry_at`,
+		RETURNING d.id, d.endpoint_id, d.event_id, d.status, d.attempts, d.max_attempts, d.next_retry_at, d.created_at,
+		    d.last_response_code, d.last_error, e.url, e.secret, ev.payload`,
 		batchSize)
 
 	if err != nil {
@@ -98,10 +99,12 @@ func (d *Deliveries) ClaimPending(ctx context.Context, batchSize int) ([]dto.Cla
 
 	defer rows.Close()
 
-	var results []dto.ClaimPendingResult
+	var results []domain.PendingDelivery
 	for rows.Next() {
-		var result dto.ClaimPendingResult
-		if err := rows.Scan(&result.ID, &result.URL, &result.Secret, &result.Payload, &result.Attempts, &result.MaxAttempts, &result.NextRetryAt); err != nil {
+		var result domain.PendingDelivery
+		if err := rows.Scan(&result.ID, &result.EndpointID, &result.EventID, &result.Status, &result.Attempts,
+			&result.MaxAttempts, &result.NextRetryAt, &result.CreatedAt, &result.LastResponseCode, &result.LastError,
+			&result.URL, &result.Secret, &result.Payload); err != nil {
 			return nil, fmt.Errorf("%s: %w", fn, err)
 		}
 
@@ -135,7 +138,7 @@ func (d *Deliveries) UpdateStatus(ctx context.Context, command dto.UpdateDeliver
 	return nil
 }
 
-func (d *Deliveries) GetByID(ctx context.Context, id string) (*domain.Delivery, error) {
+func (d *Deliveries) GetByID(ctx context.Context, id uuid.UUID) (*domain.Delivery, error) {
 	const fn = "infrastructure.pg.Deliveries.GetByID"
 
 	del := &domain.Delivery{ID: id}
@@ -177,7 +180,7 @@ func (d *Deliveries) GetFromEvent(ctx context.Context, command dto.GetDeliveries
 
 	var results []domain.Delivery
 	for rows.Next() {
-		var r domain.Delivery
+		r := domain.Delivery{EventID: command.EventID}
 		if err := rows.Scan(&r.ID, &r.EndpointID, &r.Status, &r.Attempts, &r.MaxAttempts, &r.NextRetryAt, &r.CreatedAt, &r.LastResponseCode, &r.LastError); err != nil {
 			return nil, 0, fmt.Errorf("%s: %w", fn, err)
 		}

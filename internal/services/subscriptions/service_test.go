@@ -6,10 +6,16 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
+)
+
+var (
+	endpointID     = uuid.MustParse("01900000-0000-7000-8000-0000000000a1")
+	subscriptionID = uuid.MustParse("01900000-0000-7000-8000-0000000000b1")
 )
 
 func newTestService(t *testing.T) (*Service, *MockSubscriptionRepo) {
@@ -20,8 +26,8 @@ func newTestService(t *testing.T) (*Service, *MockSubscriptionRepo) {
 }
 
 func Test_Service_Add(t *testing.T) {
-	cmd := dto.AddSubscriptionCommand{EndpointID: "ep-1", EventTypes: []string{"order.created"}}
-	subs := []domain.Subscription{{ID: "sub-1", EndpointID: "ep-1", EventType: "order.created"}}
+	cmd := dto.AddSubscriptionCommand{EndpointID: endpointID, EventTypes: []string{"order.created"}}
+	subs := []domain.Subscription{{ID: subscriptionID, EndpointID: endpointID, EventType: "order.created"}}
 
 	t.Run("success", func(t *testing.T) {
 		svc, repo := newTestService(t)
@@ -29,7 +35,7 @@ func Test_Service_Add(t *testing.T) {
 
 		got, err := svc.Add(context.Background(), cmd)
 		require.NoError(t, err)
-		require.Equal(t, &dto.AddSubscriptionResult{Subscriptions: subs}, got)
+		require.Equal(t, subs, got)
 	})
 
 	t.Run("error is wrapped", func(t *testing.T) {
@@ -43,9 +49,7 @@ func Test_Service_Add(t *testing.T) {
 }
 
 func Test_Service_GetAll(t *testing.T) {
-	const endpointID = "ep-1"
-	subs := []domain.Subscription{{ID: "sub-1", EndpointID: endpointID, EventType: "order.created"}}
-	want := []dto.GetSubscriptionResult{{ID: "sub-1", EndpointID: endpointID, EventType: "order.created"}}
+	subs := []domain.Subscription{{ID: subscriptionID, EndpointID: endpointID, EventType: "order.created"}}
 
 	t.Run("success", func(t *testing.T) {
 		svc, repo := newTestService(t)
@@ -53,7 +57,7 @@ func Test_Service_GetAll(t *testing.T) {
 
 		got, err := svc.GetAll(context.Background(), endpointID)
 		require.NoError(t, err)
-		require.Equal(t, want, got)
+		require.Equal(t, subs, got)
 	})
 
 	t.Run("error is wrapped", func(t *testing.T) {
@@ -67,7 +71,7 @@ func Test_Service_GetAll(t *testing.T) {
 }
 
 func Test_Service_Delete(t *testing.T) {
-	const id = "sub-1"
+	id := subscriptionID
 
 	t.Run("success", func(t *testing.T) {
 		svc, repo := newTestService(t)

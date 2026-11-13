@@ -12,6 +12,7 @@ package workers
 import (
 	context "context"
 	reflect "reflect"
+	domain "webhook-delivery/internal/domain"
 	dto "webhook-delivery/internal/domain/dto"
 
 	gomock "go.uber.org/mock/gomock"
@@ -42,10 +43,10 @@ func (m *MockDeliveryRepo) EXPECT() *MockDeliveryRepoMockRecorder {
 }
 
 // ClaimPending mocks base method.
-func (m *MockDeliveryRepo) ClaimPending(ctx context.Context, batchSize int) ([]dto.ClaimPendingResult, error) {
+func (m *MockDeliveryRepo) ClaimPending(ctx context.Context, batchSize int) ([]domain.PendingDelivery, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ClaimPending", ctx, batchSize)
-	ret0, _ := ret[0].([]dto.ClaimPendingResult)
+	ret0, _ := ret[0].([]domain.PendingDelivery)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

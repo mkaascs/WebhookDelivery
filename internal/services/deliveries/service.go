@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
+
+	"github.com/google/uuid"
 )
 
 type RetryNotifier interface {
@@ -12,7 +14,7 @@ type RetryNotifier interface {
 }
 
 type DeliveryRepo interface {
-	GetByID(ctx context.Context, id string) (*domain.Delivery, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*domain.Delivery, error)
 	GetFromEvent(ctx context.Context, command dto.GetDeliveriesFromEventCommand) ([]domain.Delivery, int, error)
 	UpdateStatus(ctx context.Context, command dto.UpdateDeliveryStatusCommand) error
 }

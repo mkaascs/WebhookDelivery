@@ -15,6 +15,7 @@ import (
 	domain "webhook-delivery/internal/domain"
 	dto "webhook-delivery/internal/domain/dto"
 
+	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -43,10 +44,10 @@ func (m *MockEndpointRepo) EXPECT() *MockEndpointRepoMockRecorder {
 }
 
 // Add mocks base method.
-func (m *MockEndpointRepo) Add(ctx context.Context, command dto.AddEndpointCommand) (*dto.AddEndpointResult, error) {
+func (m *MockEndpointRepo) Add(ctx context.Context, command dto.AddEndpointCommand) (*domain.Endpoint, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Add", ctx, command)
-	ret0, _ := ret[0].(*dto.AddEndpointResult)
+	ret0, _ := ret[0].(*domain.Endpoint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -58,7 +59,7 @@ func (mr *MockEndpointRepoMockRecorder) Add(ctx, command any) *gomock.Call {
 }
 
 // Delete mocks base method.
-func (m *MockEndpointRepo) Delete(ctx context.Context, id string) error {
+func (m *MockEndpointRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", ctx, id)
 	ret0, _ := ret[0].(error)
@@ -88,7 +89,7 @@ func (mr *MockEndpointRepoMockRecorder) GetAll(ctx, command any) *gomock.Call {
 }
 
 // GetByID mocks base method.
-func (m *MockEndpointRepo) GetByID(ctx context.Context, id string) (*domain.Endpoint, error) {
+func (m *MockEndpointRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain.Endpoint, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByID", ctx, id)
 	ret0, _ := ret[0].(*domain.Endpoint)

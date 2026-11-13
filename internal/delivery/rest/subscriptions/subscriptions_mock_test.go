@@ -12,8 +12,10 @@ package subscriptions
 import (
 	context "context"
 	reflect "reflect"
+	domain "webhook-delivery/internal/domain"
 	dto "webhook-delivery/internal/domain/dto"
 
+	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -42,10 +44,10 @@ func (m *MockInterface) EXPECT() *MockInterfaceMockRecorder {
 }
 
 // Add mocks base method.
-func (m *MockInterface) Add(ctx context.Context, command dto.AddSubscriptionCommand) (*dto.AddSubscriptionResult, error) {
+func (m *MockInterface) Add(ctx context.Context, command dto.AddSubscriptionCommand) ([]domain.Subscription, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Add", ctx, command)
-	ret0, _ := ret[0].(*dto.AddSubscriptionResult)
+	ret0, _ := ret[0].([]domain.Subscription)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -57,7 +59,7 @@ func (mr *MockInterfaceMockRecorder) Add(ctx, command any) *gomock.Call {
 }
 
 // Delete mocks base method.
-func (m *MockInterface) Delete(ctx context.Context, id string) error {
+func (m *MockInterface) Delete(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", ctx, id)
 	ret0, _ := ret[0].(error)
@@ -71,10 +73,10 @@ func (mr *MockInterfaceMockRecorder) Delete(ctx, id any) *gomock.Call {
 }
 
 // GetAll mocks base method.
-func (m *MockInterface) GetAll(ctx context.Context, endpointID string) ([]dto.GetSubscriptionResult, error) {
+func (m *MockInterface) GetAll(ctx context.Context, endpointID uuid.UUID) ([]domain.Subscription, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAll", ctx, endpointID)
-	ret0, _ := ret[0].([]dto.GetSubscriptionResult)
+	ret0, _ := ret[0].([]domain.Subscription)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

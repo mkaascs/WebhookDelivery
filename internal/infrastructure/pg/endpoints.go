@@ -8,8 +8,8 @@ import (
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
-	"webhook-delivery/internal/lib/uuid"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -23,7 +23,7 @@ func NewEndpoints(pool *pgxpool.Pool, log *slog.Logger) *Endpoints {
 	return &Endpoints{pool: pool, log: log}
 }
 
-func (e *Endpoints) Add(ctx context.Context, command dto.AddEndpointCommand) (*dto.AddEndpointResult, error) {
+func (e *Endpoints) Add(ctx context.Context, command dto.AddEndpointCommand) (*domain.Endpoint, error) {
 	const fn = "infrastructure.pg.Endpoints.Add"
 	log := e.log.With(slog.String("fn", fn))
 
@@ -41,20 +41,26 @@ func (e *Endpoints) Add(ctx context.Context, command dto.AddEndpointCommand) (*d
 		}
 	}(tx)
 
-	result := &dto.AddEndpointResult{}
+	endpoint := &domain.Endpoint{
+		ID:          uuid.Must(uuid.NewV7()),
+		URL:         command.URL,
+		Secret:      command.Secret,
+		EventTypes:  command.EventTypes,
+		Description: command.Description,
+	}
 
 	err = tx.QueryRow(ctx, `
 		INSERT INTO endpoints(id, url, secret, description) 
 		VALUES ($1, $2, $3, COALESCE($4, '')) 
-		RETURNING id, created_at`,
-		uuid.NewEndpoint(), command.URL, command.Secret, command.Description).
-		Scan(&result.ID, &result.CreatedAt)
+		RETURNING is_active, created_at`,
+		endpoint.ID, command.URL, command.Secret, command.Description).
+		Scan(&endpoint.IsActive, &endpoint.CreatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", fn, err)
 	}
 
-	if _, err := insertSubscription(ctx, tx, result.ID, command.EventTypes); err != nil {
+	if _, err := insertSubscription(ctx, tx, endpoint.ID, command.EventTypes); err != nil {
 		return nil, err
 	}
 
@@ -63,10 +69,10 @@ func (e *Endpoints) Add(ctx context.Context, command dto.AddEndpointCommand) (*d
 	}
 
 	success = true
-	return result, nil
+	return endpoint, nil
 }
 
-func (e *Endpoints) GetByID(ctx context.Context, id string) (*domain.Endpoint, error) {
+func (e *Endpoints) GetByID(ctx context.Context, id uuid.UUID) (*domain.Endpoint, error) {
 	const fn = "infrastructure.pg.Endpoints.GetByID"
 
 	endpoint := &domain.Endpoint{ID: id}
@@ -144,7 +150,7 @@ func (e *Endpoints) GetAll(ctx context.Context, command dto.GetAllEndpointsComma
 	return results, total, nil
 }
 
-func (e *Endpoints) Delete(ctx context.Context, id string) error {
+func (e *Endpoints) Delete(ctx context.Context, id uuid.UUID) error {
 	const fn = "infrastructure.pg.Endpoints.Delete"
 
 	res, err := e.pool.Exec(ctx, `DELETE FROM endpoints WHERE id = $1`, id)

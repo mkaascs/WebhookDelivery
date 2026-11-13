@@ -1,6 +1,8 @@
 package common
 
-import apiv1 "webhook-delivery/gen/rest/v1"
+import (
+	apiv1 "webhook-delivery/gen/rest/v1"
+)
 
 const (
 	defaultPage  = 1

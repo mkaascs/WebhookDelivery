@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"time"
 	"webhook-delivery/internal/domain"
+
+	"github.com/google/uuid"
 )
 
 type RegisterEndpointCommand struct {
@@ -18,14 +20,14 @@ type GetAllEndpointsCommand struct {
 }
 
 type UpdateEndpointCommand struct {
-	ID          string
+	ID          uuid.UUID
 	URL         *string
 	IsActive    *bool
 	Description *string
 }
 
 type AddSubscriptionCommand struct {
-	EndpointID string
+	EndpointID uuid.UUID
 	EventTypes []string
 }
 
@@ -35,7 +37,7 @@ type PublishEventCommand struct {
 }
 
 type UpdateDeliveryStatusCommand struct {
-	ID               string
+	ID               uuid.UUID
 	Status           domain.DeliveryStatus
 	Attempts         int
 	NextRetryAt      time.Time
@@ -51,7 +53,7 @@ type AddEndpointCommand struct {
 }
 
 type GetDeliveriesFromEventCommand struct {
-	EventID string
+	EventID uuid.UUID
 	Page    int
 	Limit   int
 }

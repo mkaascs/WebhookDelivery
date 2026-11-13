@@ -11,6 +11,7 @@ import (
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -18,11 +19,14 @@ import (
 var (
 	now        = time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
 	errService = errors.New("db down")
+
+	endpointID       = uuid.MustParse("01900000-0000-7000-8000-0000000000a1")
+	publicEndpointID = domain.ToPublicEndpointID(endpointID)
 )
 
 func Test_GetAllEndpoints(t *testing.T) {
-	endpoint := dto.GetEndpointResult{
-		ID:          "ep-1",
+	endpoint := domain.Endpoint{
+		ID:          endpointID,
 		URL:         "https://example.com/webhooks",
 		EventTypes:  []string{"order.created"},
 		Description: new("Billing webhook"),
@@ -31,7 +35,7 @@ func Test_GetAllEndpoints(t *testing.T) {
 	}
 
 	endpointInfo := apiv1.EndpointInfo{
-		Id:          "ep-1",
+		Id:          publicEndpointID,
 		Url:         "https://example.com/webhooks",
 		EventTypes:  []string{"order.created"},
 		Description: "Billing webhook",
@@ -52,7 +56,7 @@ func Test_GetAllEndpoints(t *testing.T) {
 			},
 			setupMock: func(m *MockInterface) {
 				m.EXPECT().GetAll(gomock.Any(), dto.GetAllEndpointsCommand{Page: 3, Limit: 50}).
-					Return(&dto.GetAllEndpointsResult{Total: 101, Endpoints: []dto.GetEndpointResult{endpoint}}, nil)
+					Return([]domain.Endpoint{endpoint}, 101, nil)
 			},
 			want: apiv1.GetAllEndpoints200JSONResponse{
 				Endpoints: []apiv1.EndpointInfo{endpointInfo},
@@ -66,7 +70,7 @@ func Test_GetAllEndpoints(t *testing.T) {
 			request: apiv1.GetAllEndpointsRequestObject{},
 			setupMock: func(m *MockInterface) {
 				m.EXPECT().GetAll(gomock.Any(), dto.GetAllEndpointsCommand{Page: 1, Limit: 10}).
-					Return(&dto.GetAllEndpointsResult{Total: 1, Endpoints: []dto.GetEndpointResult{endpoint}}, nil)
+					Return([]domain.Endpoint{endpoint}, 1, nil)
 			},
 			want: apiv1.GetAllEndpoints200JSONResponse{
 				Endpoints: []apiv1.EndpointInfo{endpointInfo},
@@ -80,13 +84,13 @@ func Test_GetAllEndpoints(t *testing.T) {
 			request: apiv1.GetAllEndpointsRequestObject{},
 			setupMock: func(m *MockInterface) {
 				m.EXPECT().GetAll(gomock.Any(), gomock.Any()).
-					Return(&dto.GetAllEndpointsResult{Total: 1, Endpoints: []dto.GetEndpointResult{
-						{ID: "ep-1", URL: "https://example.com", CreatedAt: now},
-					}}, nil)
+					Return([]domain.Endpoint{
+						{ID: endpointID, URL: "https://example.com", CreatedAt: now},
+					}, 1, nil)
 			},
 			want: apiv1.GetAllEndpoints200JSONResponse{
 				Endpoints: []apiv1.EndpointInfo{
-					{Id: "ep-1", Url: "https://example.com", EventTypes: []string{}, CreatedAt: now},
+					{Id: publicEndpointID, Url: "https://example.com", EventTypes: []string{}, CreatedAt: now},
 				},
 				Page:  1,
 				Limit: 10,
@@ -97,7 +101,7 @@ func Test_GetAllEndpoints(t *testing.T) {
 			name:    "no endpoints returns empty array",
 			request: apiv1.GetAllEndpointsRequestObject{},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetAll(gomock.Any(), gomock.Any()).Return(&dto.GetAllEndpointsResult{}, nil)
+				m.EXPECT().GetAll(gomock.Any(), gomock.Any()).Return(nil, 0, nil)
 			},
 			want: apiv1.GetAllEndpoints200JSONResponse{
 				Endpoints: []apiv1.EndpointInfo{},
@@ -109,7 +113,7 @@ func Test_GetAllEndpoints(t *testing.T) {
 			name:    "internal error",
 			request: apiv1.GetAllEndpointsRequestObject{},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetAll(gomock.Any(), gomock.Any()).Return(nil, errService)
+				m.EXPECT().GetAll(gomock.Any(), gomock.Any()).Return(nil, 0, errService)
 			},
 			want: apiv1.GetAllEndpoints500JSONResponse(common.InternalError()),
 		},
@@ -140,10 +144,10 @@ func Test_GetEndpoint(t *testing.T) {
 	}{
 		{
 			name:    "success",
-			request: apiv1.GetEndpointRequestObject{Id: "ep-1"},
+			request: apiv1.GetEndpointRequestObject{Id: publicEndpointID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetByID(gomock.Any(), "ep-1").Return(&dto.GetEndpointResult{
-					ID:          "ep-1",
+				m.EXPECT().GetByID(gomock.Any(), endpointID).Return(&domain.Endpoint{
+					ID:          endpointID,
 					URL:         "https://example.com/webhooks",
 					EventTypes:  []string{"order.created", "order.paid"},
 					Description: new("Billing webhook"),
@@ -152,7 +156,7 @@ func Test_GetEndpoint(t *testing.T) {
 				}, nil)
 			},
 			want: apiv1.GetEndpoint200JSONResponse{
-				Id:          "ep-1",
+				Id:          publicEndpointID,
 				Url:         "https://example.com/webhooks",
 				EventTypes:  []string{"order.created", "order.paid"},
 				Description: "Billing webhook",
@@ -162,16 +166,16 @@ func Test_GetEndpoint(t *testing.T) {
 		},
 		{
 			name:    "nil event types and description are mapped to defaults",
-			request: apiv1.GetEndpointRequestObject{Id: "ep-1"},
+			request: apiv1.GetEndpointRequestObject{Id: publicEndpointID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetByID(gomock.Any(), "ep-1").Return(&dto.GetEndpointResult{
-					ID:        "ep-1",
+				m.EXPECT().GetByID(gomock.Any(), endpointID).Return(&domain.Endpoint{
+					ID:        endpointID,
 					URL:       "https://example.com/webhooks",
 					CreatedAt: now,
 				}, nil)
 			},
 			want: apiv1.GetEndpoint200JSONResponse{
-				Id:         "ep-1",
+				Id:         publicEndpointID,
 				Url:        "https://example.com/webhooks",
 				EventTypes: []string{},
 				CreatedAt:  now,
@@ -179,20 +183,25 @@ func Test_GetEndpoint(t *testing.T) {
 		},
 		{
 			name:    "endpoint not found",
-			request: apiv1.GetEndpointRequestObject{Id: "ep-404"},
+			request: apiv1.GetEndpointRequestObject{Id: publicEndpointID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetByID(gomock.Any(), "ep-404").
+				m.EXPECT().GetByID(gomock.Any(), endpointID).
 					Return(nil, fmt.Errorf("service: %w", domain.ErrEndpointNotFound))
 			},
 			want: apiv1.GetEndpoint404JSONResponse(errEndpointNotFound),
 		},
 		{
 			name:    "internal error",
-			request: apiv1.GetEndpointRequestObject{Id: "ep-1"},
+			request: apiv1.GetEndpointRequestObject{Id: publicEndpointID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().GetByID(gomock.Any(), "ep-1").Return(nil, errService)
+				m.EXPECT().GetByID(gomock.Any(), endpointID).Return(nil, errService)
 			},
 			want: apiv1.GetEndpoint500JSONResponse(common.InternalError()),
+		},
+		{
+			name:    "invalid id",
+			request: apiv1.GetEndpointRequestObject{Id: "ep_123"},
+			want:    apiv1.GetEndpoint404JSONResponse(errEndpointNotFound),
 		},
 	}
 
@@ -233,15 +242,18 @@ func Test_RegisterEndpoint(t *testing.T) {
 					URL:         url,
 					EventTypes:  []string{"order.created"},
 					Description: new("Billing webhook"),
-				}).Return(&dto.RegisterEndpointResult{
-					ID:        "ep-1",
-					Secret:    "whsec_123",
-					IsActive:  true,
-					CreatedAt: now,
+				}).Return(&domain.Endpoint{
+					ID:          endpointID,
+					URL:         url,
+					Secret:      "whsec_123",
+					EventTypes:  []string{"order.created"},
+					Description: new("Billing webhook"),
+					IsActive:    true,
+					CreatedAt:   now,
 				}, nil)
 			},
 			want: apiv1.RegisterEndpoint200JSONResponse{
-				Id:         "ep-1",
+				Id:         publicEndpointID,
 				Url:        url,
 				Secret:     "whsec_123",
 				IsActive:   true,
@@ -256,15 +268,17 @@ func Test_RegisterEndpoint(t *testing.T) {
 				m.EXPECT().Register(gomock.Any(), dto.RegisterEndpointCommand{
 					URL:        url,
 					EventTypes: []string{},
-				}).Return(&dto.RegisterEndpointResult{
-					ID:        "ep-1",
-					Secret:    "whsec_123",
-					IsActive:  true,
-					CreatedAt: now,
+				}).Return(&domain.Endpoint{
+					ID:         endpointID,
+					URL:        url,
+					Secret:     "whsec_123",
+					EventTypes: []string{},
+					IsActive:   true,
+					CreatedAt:  now,
 				}, nil)
 			},
 			want: apiv1.RegisterEndpoint200JSONResponse{
-				Id:         "ep-1",
+				Id:         publicEndpointID,
 				Url:        url,
 				Secret:     "whsec_123",
 				IsActive:   true,
@@ -333,7 +347,7 @@ func Test_UpdateEndpoint(t *testing.T) {
 		{
 			name: "success",
 			request: apiv1.UpdateEndpointRequestObject{
-				Id: "ep-1",
+				Id: publicEndpointID,
 				Body: &apiv1.UpdateEndpointRequest{
 					Url:         new("https://example.com/new"),
 					IsActive:    new(false),
@@ -342,7 +356,7 @@ func Test_UpdateEndpoint(t *testing.T) {
 			},
 			setupMock: func(m *MockInterface) {
 				m.EXPECT().Update(gomock.Any(), dto.UpdateEndpointCommand{
-					ID:          "ep-1",
+					ID:          endpointID,
 					URL:         new("https://example.com/new"),
 					IsActive:    new(false),
 					Description: new("new description"),
@@ -353,12 +367,12 @@ func Test_UpdateEndpoint(t *testing.T) {
 		{
 			name: "success without url",
 			request: apiv1.UpdateEndpointRequestObject{
-				Id:   "ep-1",
+				Id:   publicEndpointID,
 				Body: &apiv1.UpdateEndpointRequest{IsActive: new(true)},
 			},
 			setupMock: func(m *MockInterface) {
 				m.EXPECT().Update(gomock.Any(), dto.UpdateEndpointCommand{
-					ID:       "ep-1",
+					ID:       endpointID,
 					IsActive: new(true),
 				}).Return(nil)
 			},
@@ -366,13 +380,13 @@ func Test_UpdateEndpoint(t *testing.T) {
 		},
 		{
 			name:    "empty body is a no-op",
-			request: apiv1.UpdateEndpointRequestObject{Id: "ep-1"},
+			request: apiv1.UpdateEndpointRequestObject{Id: publicEndpointID},
 			want:    apiv1.UpdateEndpoint204Response{},
 		},
 		{
 			name: "invalid url",
 			request: apiv1.UpdateEndpointRequestObject{
-				Id:   "ep-1",
+				Id:   publicEndpointID,
 				Body: &apiv1.UpdateEndpointRequest{Url: new("http://localhost/hook")},
 			},
 			want: apiv1.UpdateEndpoint400JSONResponse(common.InvalidURLError()),
@@ -380,7 +394,7 @@ func Test_UpdateEndpoint(t *testing.T) {
 		{
 			name: "endpoint not found",
 			request: apiv1.UpdateEndpointRequestObject{
-				Id:   "ep-404",
+				Id:   publicEndpointID,
 				Body: &apiv1.UpdateEndpointRequest{IsActive: new(true)},
 			},
 			setupMock: func(m *MockInterface) {
@@ -392,13 +406,21 @@ func Test_UpdateEndpoint(t *testing.T) {
 		{
 			name: "internal error",
 			request: apiv1.UpdateEndpointRequestObject{
-				Id:   "ep-1",
+				Id:   publicEndpointID,
 				Body: &apiv1.UpdateEndpointRequest{IsActive: new(true)},
 			},
 			setupMock: func(m *MockInterface) {
 				m.EXPECT().Update(gomock.Any(), gomock.Any()).Return(errService)
 			},
 			want: apiv1.UpdateEndpoint500JSONResponse(common.InternalError()),
+		},
+		{
+			name: "invalid id",
+			request: apiv1.UpdateEndpointRequestObject{
+				Id:   "sub_" + endpointID.String(),
+				Body: &apiv1.UpdateEndpointRequest{IsActive: new(true)},
+			},
+			want: apiv1.UpdateEndpoint404JSONResponse(errEndpointNotFound),
 		},
 	}
 
@@ -427,28 +449,33 @@ func Test_DeleteEndpoint(t *testing.T) {
 	}{
 		{
 			name:    "success",
-			request: apiv1.DeleteEndpointRequestObject{Id: "ep-1"},
+			request: apiv1.DeleteEndpointRequestObject{Id: publicEndpointID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().Delete(gomock.Any(), "ep-1").Return(nil)
+				m.EXPECT().Delete(gomock.Any(), endpointID).Return(nil)
 			},
 			want: apiv1.DeleteEndpoint204Response{},
 		},
 		{
 			name:    "endpoint not found",
-			request: apiv1.DeleteEndpointRequestObject{Id: "ep-404"},
+			request: apiv1.DeleteEndpointRequestObject{Id: publicEndpointID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().Delete(gomock.Any(), "ep-404").
+				m.EXPECT().Delete(gomock.Any(), endpointID).
 					Return(fmt.Errorf("service: %w", domain.ErrEndpointNotFound))
 			},
 			want: apiv1.DeleteEndpoint404JSONResponse(errEndpointNotFound),
 		},
 		{
 			name:    "internal error",
-			request: apiv1.DeleteEndpointRequestObject{Id: "ep-1"},
+			request: apiv1.DeleteEndpointRequestObject{Id: publicEndpointID},
 			setupMock: func(m *MockInterface) {
-				m.EXPECT().Delete(gomock.Any(), "ep-1").Return(errService)
+				m.EXPECT().Delete(gomock.Any(), endpointID).Return(errService)
 			},
 			want: apiv1.DeleteEndpoint500JSONResponse(common.InternalError()),
+		},
+		{
+			name:    "invalid id",
+			request: apiv1.DeleteEndpointRequestObject{Id: "ep_"},
+			want:    apiv1.DeleteEndpoint404JSONResponse(errEndpointNotFound),
 		},
 	}
 

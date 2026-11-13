@@ -9,4 +9,5 @@ var (
 	ErrEventNotFound             = errors.New("event not found")
 	ErrEndpointIsInactive        = errors.New("endpoint is inactive")
 	ErrDeliveryNotFound          = errors.New("delivery not found")
+	ErrInvalidID                 = errors.New("invalid id")
 )

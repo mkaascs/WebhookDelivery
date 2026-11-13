@@ -15,6 +15,7 @@ import (
 	domain "webhook-delivery/internal/domain"
 	dto "webhook-delivery/internal/domain/dto"
 
+	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -58,7 +59,7 @@ func (mr *MockSubscriptionRepoMockRecorder) Add(ctx, command any) *gomock.Call {
 }
 
 // Delete mocks base method.
-func (m *MockSubscriptionRepo) Delete(ctx context.Context, id string) error {
+func (m *MockSubscriptionRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", ctx, id)
 	ret0, _ := ret[0].(error)
@@ -72,7 +73,7 @@ func (mr *MockSubscriptionRepoMockRecorder) Delete(ctx, id any) *gomock.Call {
 }
 
 // GetAll mocks base method.
-func (m *MockSubscriptionRepo) GetAll(ctx context.Context, endpointID string) ([]domain.Subscription, error) {
+func (m *MockSubscriptionRepo) GetAll(ctx context.Context, endpointID uuid.UUID) ([]domain.Subscription, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAll", ctx, endpointID)
 	ret0, _ := ret[0].([]domain.Subscription)

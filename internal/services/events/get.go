@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"webhook-delivery/internal/domain/dto"
+	"webhook-delivery/internal/domain"
 	sloglib "webhook-delivery/internal/lib/logging/slog"
 	"webhook-delivery/internal/services/utils"
+
+	"github.com/google/uuid"
 )
 
-func (s *Service) Get(ctx context.Context, eventID string) (*dto.GetEventResult, error) {
+func (s *Service) Get(ctx context.Context, eventID uuid.UUID) (*domain.Event, error) {
 	const fn = "services.events.Service.Get"
 	log := s.log.With(slog.String("fn", fn))
 
@@ -17,17 +19,15 @@ func (s *Service) Get(ctx context.Context, eventID string) (*dto.GetEventResult,
 	if err != nil {
 		const msg = "failed to get event by id"
 		if utils.IsDomainError(err) || utils.IsCtxError(err) {
-			log.Info(msg, sloglib.Error(err), slog.String("id", eventID))
+			log.Info(msg, sloglib.Error(err), slog.String("id", eventID.String()))
 			return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 		}
 
-		log.Error(msg, sloglib.Error(err), slog.String("id", eventID))
+		log.Error(msg, sloglib.Error(err), slog.String("id", eventID.String()))
 		return nil, fmt.Errorf("%s: %s: %w", fn, msg, err)
 	}
 
-	log.Info("event info was sent successfully", slog.String("id", event.ID))
+	log.Info("event info was sent successfully", slog.String("id", event.ID.String()))
 
-	return &dto.GetEventResult{
-		Event: *event,
-	}, nil
+	return event, nil
 }

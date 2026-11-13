@@ -15,7 +15,7 @@ func ToPublishErrorResponse(_ error) apiv1.PublishEventResponseObject {
 
 func ToGetErrorResponse(err error) apiv1.GetEventResponseObject {
 	switch {
-	case errors.Is(err, domain.ErrEventNotFound):
+	case errors.Is(err, domain.ErrEventNotFound), errors.Is(err, domain.ErrInvalidID):
 		return apiv1.GetEvent404JSONResponse(errEventNotFound)
 
 	default:

@@ -15,6 +15,7 @@ import (
 	domain "webhook-delivery/internal/domain"
 	dto "webhook-delivery/internal/domain/dto"
 
+	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -94,7 +95,7 @@ func (mr *MockEventRepoMockRecorder) Add(ctx, command any) *gomock.Call {
 }
 
 // GetByID mocks base method.
-func (m *MockEventRepo) GetByID(ctx context.Context, id string) (*domain.Event, error) {
+func (m *MockEventRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain.Event, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByID", ctx, id)
 	ret0, _ := ret[0].(*domain.Event)
@@ -133,7 +134,7 @@ func (m *MockDeliveryRepo) EXPECT() *MockDeliveryRepoMockRecorder {
 }
 
 // CreateForEvent mocks base method.
-func (m *MockDeliveryRepo) CreateForEvent(ctx context.Context, eventID, eventType string) (int, error) {
+func (m *MockDeliveryRepo) CreateForEvent(ctx context.Context, eventID uuid.UUID, eventType string) (int, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateForEvent", ctx, eventID, eventType)
 	ret0, _ := ret[0].(int)

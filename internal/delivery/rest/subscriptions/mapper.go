@@ -5,7 +5,6 @@ import (
 	apiv1 "webhook-delivery/gen/rest/v1"
 	"webhook-delivery/internal/delivery/rest/common"
 	"webhook-delivery/internal/domain"
-	"webhook-delivery/internal/domain/dto"
 )
 
 var (
@@ -16,7 +15,7 @@ var (
 
 func ToGetAllErrorResponse(err error) apiv1.GetAllSubscriptionsResponseObject {
 	switch {
-	case errors.Is(err, domain.ErrEndpointNotFound):
+	case errors.Is(err, domain.ErrEndpointNotFound), errors.Is(err, domain.ErrInvalidID):
 		return apiv1.GetAllSubscriptions404JSONResponse(errEndpointNotFound)
 
 	default:
@@ -26,7 +25,7 @@ func ToGetAllErrorResponse(err error) apiv1.GetAllSubscriptionsResponseObject {
 
 func ToSubscribeErrorResponse(err error) apiv1.SubscribeResponseObject {
 	switch {
-	case errors.Is(err, domain.ErrEndpointNotFound):
+	case errors.Is(err, domain.ErrEndpointNotFound), errors.Is(err, domain.ErrInvalidID):
 		return apiv1.Subscribe404JSONResponse(errEndpointNotFound)
 
 	case errors.Is(err, domain.ErrSubscriptionAlreadyExists):
@@ -39,7 +38,7 @@ func ToSubscribeErrorResponse(err error) apiv1.SubscribeResponseObject {
 
 func ToDeleteErrorResponse(err error) apiv1.DeleteSubscriptionResponseObject {
 	switch {
-	case errors.Is(err, domain.ErrSubscriptionNotFound):
+	case errors.Is(err, domain.ErrSubscriptionNotFound), errors.Is(err, domain.ErrInvalidID):
 		return apiv1.DeleteSubscription404JSONResponse(errSubscriptionNotFound)
 
 	default:
@@ -47,26 +46,12 @@ func ToDeleteErrorResponse(err error) apiv1.DeleteSubscriptionResponseObject {
 	}
 }
 
-func ToSubscriptionsInfo(subscriptions []dto.GetSubscriptionResult) []apiv1.SubscriptionInfo {
+func ToSubscriptionsInfo(subscriptions []domain.Subscription) []apiv1.SubscriptionInfo {
 	result := make([]apiv1.SubscriptionInfo, 0, len(subscriptions))
 	for _, sub := range subscriptions {
 		result = append(result, apiv1.SubscriptionInfo{
-			Id:         sub.ID,
-			EndpointId: sub.EndpointID,
-			EventType:  sub.EventType,
-			CreatedAt:  sub.CreatedAt,
-		})
-	}
-
-	return result
-}
-
-func ToSubscriptionsInfoFromDomain(subscriptions []domain.Subscription) []apiv1.SubscriptionInfo {
-	result := make([]apiv1.SubscriptionInfo, 0, len(subscriptions))
-	for _, sub := range subscriptions {
-		result = append(result, apiv1.SubscriptionInfo{
-			Id:         sub.ID,
-			EndpointId: sub.EndpointID,
+			Id:         domain.ToPublicSubscriptionID(sub.ID),
+			EndpointId: domain.ToPublicEndpointID(sub.EndpointID),
 			EventType:  sub.EventType,
 			CreatedAt:  sub.CreatedAt,
 		})

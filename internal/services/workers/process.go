@@ -43,7 +43,7 @@ func (s *Service) processBatch(ctx context.Context) {
 			NextRetryAt: delivery.NextRetryAt,
 		}
 
-		code, msg, err := s.sendPostRequest(ctx, delivery.URL, delivery.Payload, delivery.Secret)
+		code, msg, err := s.sendPostRequest(ctx, delivery.URL, delivery.Payload, []byte(delivery.Secret))
 		if err != nil {
 			log.Warn("failed to send post request", sloglib.Error(err), slog.String("url", delivery.URL))
 		} else {

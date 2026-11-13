@@ -15,6 +15,7 @@ import (
 	domain "webhook-delivery/internal/domain"
 	dto "webhook-delivery/internal/domain/dto"
 
+	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -79,7 +80,7 @@ func (m *MockDeliveryRepo) EXPECT() *MockDeliveryRepoMockRecorder {
 }
 
 // GetByID mocks base method.
-func (m *MockDeliveryRepo) GetByID(ctx context.Context, id string) (*domain.Delivery, error) {
+func (m *MockDeliveryRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain.Delivery, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByID", ctx, id)
 	ret0, _ := ret[0].(*domain.Delivery)

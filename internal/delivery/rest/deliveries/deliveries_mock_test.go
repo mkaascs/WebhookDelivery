@@ -12,8 +12,10 @@ package deliveries
 import (
 	context "context"
 	reflect "reflect"
+	domain "webhook-delivery/internal/domain"
 	dto "webhook-delivery/internal/domain/dto"
 
+	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -42,10 +44,10 @@ func (m *MockInterface) EXPECT() *MockInterfaceMockRecorder {
 }
 
 // GetByID mocks base method.
-func (m *MockInterface) GetByID(ctx context.Context, id string) (*dto.GetDeliveryResult, error) {
+func (m *MockInterface) GetByID(ctx context.Context, id uuid.UUID) (*domain.Delivery, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByID", ctx, id)
-	ret0, _ := ret[0].(*dto.GetDeliveryResult)
+	ret0, _ := ret[0].(*domain.Delivery)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -57,12 +59,13 @@ func (mr *MockInterfaceMockRecorder) GetByID(ctx, id any) *gomock.Call {
 }
 
 // GetFromEvent mocks base method.
-func (m *MockInterface) GetFromEvent(ctx context.Context, command dto.GetDeliveriesFromEventCommand) (*dto.GetDeliveriesFromEventResult, error) {
+func (m *MockInterface) GetFromEvent(ctx context.Context, command dto.GetDeliveriesFromEventCommand) ([]domain.Delivery, int, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetFromEvent", ctx, command)
-	ret0, _ := ret[0].(*dto.GetDeliveriesFromEventResult)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].([]domain.Delivery)
+	ret1, _ := ret[1].(int)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // GetFromEvent indicates an expected call of GetFromEvent.
@@ -72,7 +75,7 @@ func (mr *MockInterfaceMockRecorder) GetFromEvent(ctx, command any) *gomock.Call
 }
 
 // Retry mocks base method.
-func (m *MockInterface) Retry(ctx context.Context, id string) error {
+func (m *MockInterface) Retry(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Retry", ctx, id)
 	ret0, _ := ret[0].(error)

@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"webhook-delivery/internal/domain"
 	"webhook-delivery/internal/domain/dto"
+
+	"github.com/google/uuid"
 )
 
 type EventNotifier interface {
@@ -13,11 +15,11 @@ type EventNotifier interface {
 
 type EventRepo interface {
 	Add(ctx context.Context, command dto.PublishEventCommand) (*domain.Event, error)
-	GetByID(ctx context.Context, id string) (*domain.Event, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*domain.Event, error)
 }
 
 type DeliveryRepo interface {
-	CreateForEvent(ctx context.Context, eventID, eventType string) (int, error)
+	CreateForEvent(ctx context.Context, eventID uuid.UUID, eventType string) (int, error)
 }
 
 type Service struct {
