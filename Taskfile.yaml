@@ -27,6 +27,10 @@ tasks:
     cmds:
       - task test
       - go tool cover -html=coverage.out -o coverage.html
+  lint:
+    desc: "Run golangci-lint"
+    cmds:
+      - golangci-lint run
   migrate:up:
     desc: "Migrate up DB"
     cmds:
